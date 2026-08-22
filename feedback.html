@@ -88,18 +88,18 @@
   <div class="step-label">Qui ets?</div>
   <select id="playerSelect">
     <option value="">Tria el teu nom</option>
-    <option>Berta</option>
-    <option>Sira</option>
-    <option>Laia M.</option>
-    <option>Laia V.</option>
-    <option>Queralt Reifs</option>
-    <option>Jana S.</option>
-    <option>Júlia G.</option>
-    <option>Noa Ral</option>
-    <option>Jana Ll.</option>
-    <option>Núria P.</option>
-    <option>Mariona</option>
-    <option>Clàudia Z.</option>
+    <option>0.Berta</option>
+    <option>5.Sira</option>
+    <option>8.Laia M</option>
+    <option>11.Laia V</option>
+    <option>12.Queralt</option>
+    <option>16.Jana S.</option>
+    <option>17.Júlia</option>
+    <option>18.Noa</option>
+    <option>19.Jana Ll</option>
+    <option>24.Núria</option>
+    <option>26.Mariona</option>
+    <option>48.Clàudia</option>
   </select>
 
   <div class="step-label">Dia</div>
@@ -113,6 +113,9 @@
     <div class="mood-btn" data-val="Cansada"><div class="emoji">😓</div><div class="lbl">Cansada</div></div>
     <div class="mood-btn" data-val="Molt cansada"><div class="emoji">🥵</div><div class="lbl">Molt cansada</div></div>
   </div>
+
+  <div class="step-label">Vols afegir algun comentari? <span style="color:var(--text-dim); text-transform:none; letter-spacing:0;">(opcional)</span></div>
+  <textarea id="commentInput" rows="3" placeholder="Escriu aquí el que vulguis..." style="width:100%; padding:14px; border-radius:12px; background:var(--bg-raised); border:1px solid var(--line); color:var(--text); font-family:'Inter',sans-serif; font-size:15px; resize:vertical;"></textarea>
 
   <button class="btn btn-primary" id="saveBtn" disabled>Enviar</button>
 </div>
@@ -163,7 +166,8 @@
           type: 'feedback',
           data: dateInput.value,
           jugadora: playerSelect.value,
-          cansament: selectedMood
+          cansament: selectedMood,
+          comentari: document.getElementById('commentInput').value.trim()
         })
       });
       const result = await res.json();
