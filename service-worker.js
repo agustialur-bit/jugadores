@@ -1,8 +1,16 @@
-const CACHE = 'manresa-jugadores-v1';
-const SHELL = ['./', './index.html', './feedback.html', './manifest.json', './icon-192.png', './icon-512.png'];
+/* Puja el número de VERSIO cada cop que publiquis canvis: això fa que els
+   mòbils esborrin la còpia antiga i es quedin només amb la nova. */
+const VERSIO = 'v2';
+const CACHE = 'manresa-jugadores-' + VERSIO;
+
+// Fitxers que gairebé no canvien: es serveixen de la còpia local.
+const ESTATICS = ['./manifest.json', './icon-192.png', './icon-512.png'];
+// Pàgines: es precarreguen per poder obrir l'app sense cobertura, però es
+// demanen sempre a la xarxa primer (mira el 'fetch' de més avall).
+const PAGINES = ['./', './index.html', './feedback.html'];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ESTATICS.concat(PAGINES))));
   self.skipWaiting();
 });
 
@@ -14,7 +22,31 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
+  const req = event.request;
+  const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // Drive i l'API van sempre a la xarxa
-  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
+  if (req.method !== 'GET') return;
+
+  const esPagina = req.mode === 'navigate' || req.destination === 'document' ||
+                   url.pathname.endsWith('.html') || url.pathname.endsWith('/');
+
+  if (esPagina) {
+    // Xarxa primer: així qualsevol canvi que es publiqui arriba sol al mòbil.
+    // Si no hi ha cobertura, servim l'última còpia bona desada.
+    event.respondWith(
+      // 'no-store' salta la copia HTTP del propi navegador: sense aixo, un
+      // canvi acabat de publicar pot trigar minuts a arribar al mobil.
+      fetch(req.url, { cache: 'no-store', credentials: 'same-origin' })
+        .then((res) => {
+          const copia = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copia));
+          return res;
+        })
+        .catch(() => caches.match(req).then((c) => c || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  // Icones i manifest: còpia primer, que no canvien i així l'app obre ràpid.
+  event.respondWith(caches.match(req).then((cached) => cached || fetch(req)));
 });
