@@ -43,6 +43,7 @@ function doGet(e) {
   var fbSheet = ss.getSheetByName('Feedback');
   var vidSheet = ss.getSheetByName('Videos');
   var vidRivalsSheet = ss.getSheetByName('VideosRivals');
+  var imgSheet = ss.getSheetByName('Imatges');
 
   var registres = [];
   if (regSheet) {
@@ -80,11 +81,15 @@ function doGet(e) {
 
   var videos = readVideos_(vidSheet);
   var videosRivals = readVideos_(vidRivalsSheet);
+  // Mateix format que els videos: Data | Titol | URL. Si la pestanya no
+  // existeix, readVideos_ retorna una llista buida i no passa res.
+  var imatges = readVideos_(imgSheet);
 
   return ContentService
     .createTextOutput(JSON.stringify({
       registres: registres, conceptes: conceptes, feedback: feedback,
-      videos: videos, videosRivals: videosRivals
+      videos: videos, videosRivals: videosRivals,
+      imatges: imatges
     }))
     .setMimeType(ContentService.MimeType.JSON);
 }

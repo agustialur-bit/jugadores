@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>No miris aquí · Manresa</title>
+<meta name="theme-color" content="#11141a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#11141a; --bg-raised:#181c24; --bg-raised-2:#1e2330;
+    --line:#2a2f3a; --pink:#ff2d78; --pink-dim:#c21f5c;
+    --text:#f2f1ee; --text-dim:#8b93a3;
+
+    /* --- Colors dels gràfics -------------------------------------------
+       La superfície dels gràfics és --bg-raised (#181c24). Tots aquests
+       valors s'han validat contra aquesta superfície amb l'script de
+       validació de paletes (banda de lluminositat, croma, separació per a
+       daltonisme i contrast). No canviar-los sense tornar-lo a passar.  */
+
+    /* Magnitud: un sol to per a totes les barres. La llargada ja codifica
+       el valor; pintar-les més fosques segons la mida seria dir-ho dues
+       vegades i trencaria les comprovacions de color. */
+    --serie:#ff2d78;
+
+    /* Escala del cansament, divergent i centrada al "Normal". Dos pols que
+       es llegeixen com a oposats i un gris neutre al mig. La lluminositat
+       fa forma de V: els extrems son els mes forts i el neutre queda arran
+       del fons, que es el que ha de passar en una escala divergent.
+       Adjacents: pitjor parell 19.4 de visio normal (terra 15). El vermell
+       fosc i el gris queden a 7.2 sota protanopia, dins la banda que el
+       metode permet nomes amb una segona codificacio: aqui l'ordre fix dels
+       trams, la llegenda i la taula de dades. */
+    --esc-1:#8fbdf0;   /* Molt bé      */
+    --esc-2:#3d7fd6;   /* Bé           */
+    --esc-3:#4d5361;   /* Normal       */
+    --esc-4:#b8433f;   /* Cansada      */
+    --esc-5:#f5928d;   /* Molt cansada */
+
+    --graella:#252a34; /* línies de reixa, un pèl per sobre de la superfície */
+    --eix:#333944;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--text);}
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    min-height:100vh; min-height:100dvh;
+    padding: max(20px, env(safe-area-inset-top)) 20px max(28px, env(safe-area-inset-bottom));
+  }
+  .wrap{width:100%; max-width:560px; margin:0 auto;}
+
+  .topbar{display:flex; align-items:center; gap:12px; margin-bottom:6px;}
+  .back-btn{
+    width:38px; height:38px; border-radius:10px;
+    background:var(--bg-raised); border:1px solid var(--line);
+    color:var(--text); display:flex; align-items:center; justify-content:center;
+    text-decoration:none; flex:0 0 auto;
+  }
+  .topbar h1{
+    font-family:'Oswald',sans-serif; font-weight:700; font-size:22px;
+    text-transform:uppercase; letter-spacing:.01em; margin:0;
+  }
+  .broma{font-size:12.5px; color:var(--text-dim); margin:0 0 22px 50px;}
+
+  /* ---- fitxes de xifres ---- */
+  .xifres{display:grid; grid-template-columns:repeat(3, 1fr); gap:9px; margin-bottom:26px;}
+  .xifra{
+    background:var(--bg-raised); border:1px solid var(--line);
+    border-radius:14px; padding:14px 10px; text-align:center;
+  }
+  .xifra-valor{
+    font-family:'Oswald',sans-serif; font-weight:700; font-size:26px; line-height:1;
+  }
+  .xifra-etiqueta{
+    font-size:10px; color:var(--text-dim); margin-top:6px;
+    text-transform:uppercase; letter-spacing:.08em;
+  }
+
+  /* ---- blocs de gràfic ---- */
+  .bloc{margin-bottom:28px;}
+  .bloc-cap{margin-bottom:12px;}
+  .bloc-titol{
+    font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--pink); margin-bottom:4px;
+  }
+  .bloc-sub{font-size:12px; color:var(--text-dim); line-height:1.4;}
+  .panell{
+    background:var(--bg-raised); border:1px solid var(--line);
+    border-radius:14px; padding:16px 14px;
+  }
+
+  /* ---- barres per concepte ---- */
+  .barra-fila{margin-bottom:11px;}
+  .barra-fila:last-child{margin-bottom:0;}
+  .barra-cap{
+    display:flex; justify-content:space-between; align-items:baseline;
+    gap:10px; margin-bottom:5px;
+  }
+  .barra-nom{
+    font-size:11.5px; color:var(--text); min-width:0;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .barra-valor{
+    font-size:11px; color:var(--text-dim); flex:0 0 auto;
+    font-variant-numeric:tabular-nums;
+  }
+  .barra-pista{height:8px; background:var(--graella); border-radius:4px; overflow:hidden;}
+  .barra-plena{
+    height:100%; background:var(--serie); border-radius:4px;
+    width:0; transition:width .9s cubic-bezier(.22,.9,.3,1);
+  }
+
+  /* ---- llegenda ---- */
+  .llegenda{
+    display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:14px;
+    font-size:10.5px; color:var(--text-dim);
+  }
+  .llegenda span{display:inline-flex; align-items:center; gap:5px;}
+  .mostra{width:9px; height:9px; border-radius:2px; flex:0 0 auto;}
+
+  /* ---- taula de dades ---- */
+  .veure-dades{
+    background:none; border:none; color:var(--text-dim);
+    font-size:11px; text-decoration:underline; cursor:pointer;
+    padding:8px 0 0; font-family:'Inter',sans-serif;
+  }
+  table.dades{
+    width:100%; border-collapse:collapse; margin-top:10px; font-size:11.5px;
+  }
+  table.dades th, table.dades td{
+    text-align:right; padding:5px 6px; border-bottom:1px solid var(--line);
+    font-variant-numeric:tabular-nums;
+  }
+  table.dades th:first-child, table.dades td:first-child{text-align:left;}
+  table.dades th{color:var(--text-dim); font-weight:600;}
+
+  /* ---- globus d'informació ---- */
+  #globus{
+    position:fixed; z-index:50; pointer-events:none; opacity:0;
+    background:var(--bg-raised-2); border:1px solid var(--line);
+    border-radius:9px; padding:8px 10px; font-size:11.5px;
+    box-shadow:0 6px 20px rgba(0,0,0,.45); transition:opacity .12s; max-width:220px;
+  }
+  #globus b{font-weight:600;}
+  #globus .g-sub{color:var(--text-dim); font-size:10.5px; display:block; margin-top:2px;}
+
+  /* ---- imatges del Drive ---- */
+  .imatges{display:grid; gap:12px;}
+  .imatge{
+    background:var(--bg-raised); border:1px solid var(--line);
+    border-radius:14px; overflow:hidden; cursor:zoom-in;
+  }
+  /* sostre d'alcada perque una imatge vertical no s'empassi la pantalla */
+  .imatge img{width:100%; display:block; background:var(--bg-raised-2);
+    min-height:60px; max-height:460px; object-fit:contain;}
+  .imatge-peu{padding:10px 13px; display:flex; justify-content:space-between; gap:10px; align-items:baseline;}
+  .imatge-titol{font-size:12.5px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .imatge-data{font-size:10.5px; color:var(--text-dim); flex:0 0 auto;}
+  .imatge-error{padding:14px; font-size:11.5px; color:var(--text-dim); line-height:1.45;}
+
+  /* visor a pantalla completa */
+  #visor{
+    position:fixed; inset:0; z-index:100; background:rgba(9,11,15,.94);
+    display:none; align-items:center; justify-content:center; padding:16px; cursor:zoom-out;
+  }
+  #visor.obert{display:flex;}
+  #visor img{max-width:100%; max-height:88vh; object-fit:contain; border-radius:8px;}
+  #visor .tanca{
+    position:absolute; top:calc(12px + env(safe-area-inset-top)); right:14px;
+    width:38px; height:38px; border-radius:10px; border:1px solid var(--line);
+    background:var(--bg-raised); color:var(--text); font-size:20px; line-height:1;
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  .estat{text-align:center; color:var(--text-dim); font-size:13px; padding:40px 10px; line-height:1.5;}
+  .refresca{
+    display:block; margin:10px auto 0; background:var(--bg-raised);
+    border:1px solid var(--line); color:var(--text-dim);
+    font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:.1em;
+    text-transform:uppercase; padding:9px 16px; border-radius:9px; cursor:pointer;
+  }
+  svg{display:block; width:100%; overflow:visible;}
+  .eix-txt{font-size:9.5px; fill:var(--text-dim);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a href="index.html" class="back-btn" aria-label="Enrere">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <h1>No miris aquí</h1>
+  </div>
+  <p class="broma">T'ho havíem dit. Ara ja no ho pots desveure.</p>
+
+  <div id="contingut"><div class="estat">Carregant...</div></div>
+</div>
+<div id="globus"></div>
+<div id="visor" aria-hidden="true"><button class="tanca" aria-label="Tancar">×</button><img alt=""></div>
+
+<script>
+  const API_URL = "https://script.google.com/macros/s/AKfycbxhyiqFm5fV2TWiSgBb-keqqes7jmYDqIr40mSWb8uxuHU-jN8MTH0t7XHeRVe-Yg/exec";
+
+  /* --- Connexio amb el Sheet -----------------------------------------------
+     El web app d'Apps Script respon 404 de manera intermitent, o sigui que
+     reintentem amb una espera creixent. Aqui nomes llegim, no desem res. */
+  const ESPERES = [1200, 3000];
+  const TEMPS_MAX = 9000;
+  const dorm = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  async function apiLlegeix(intents = 3){
+    let ultimError;
+    for (let i = 0; i < intents; i++){
+      const ctrl = new AbortController();
+      const id = setTimeout(() => ctrl.abort(), TEMPS_MAX);
+      try{
+        const res = await fetch(API_URL, { cache: 'no-store', signal: ctrl.signal });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return await res.json();
+      } catch(err){
+        ultimError = err;
+        if (i < intents - 1) await dorm(ESPERES[Math.min(i, ESPERES.length - 1)]);
+      } finally { clearTimeout(id); }
+    }
+    throw ultimError;
+  }
+
+  // ---------------------------------------------------------------- utils
+  const escapa = (s) => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+
+  const ESCALA = ['Molt bé', 'Bé', 'Normal', 'Cansada', 'Molt cansada'];
+  const COLOR_ESCALA = ['var(--esc-1)','var(--esc-2)','var(--esc-3)','var(--esc-4)','var(--esc-5)'];
+
+  // dilluns de la setmana d'una data ISO
+  function dilluns(iso){
+    const d = new Date(iso + 'T00:00:00');
+    const dia = (d.getDay() + 6) % 7;            // 0 = dilluns
+    d.setDate(d.getDate() - dia);
+    return d.toISOString().slice(0, 10);
+  }
+  const etiquetaSetmana = (iso) => {
+    const [, m, d] = iso.split('-');
+    return d + '/' + m;
+  };
+
+  // ---------------------------------------------------------------- globus
+  const globus = document.getElementById('globus');
+  function mostraGlobus(e, html){
+    globus.innerHTML = html;
+    globus.style.opacity = '1';
+    const r = globus.getBoundingClientRect();
+    let x = e.clientX + 12, y = e.clientY - r.height - 10;
+    if (x + r.width > window.innerWidth - 8) x = window.innerWidth - r.width - 8;
+    if (y < 8) y = e.clientY + 16;
+    globus.style.left = x + 'px';
+    globus.style.top = y + 'px';
+  }
+  const amagaGlobus = () => { globus.style.opacity = '0'; };
+  function enganxaGlobus(el, html){
+    el.style.cursor = 'pointer';
+    el.addEventListener('mouseenter', (e) => mostraGlobus(e, html));
+    el.addEventListener('mousemove', (e) => mostraGlobus(e, html));
+    el.addEventListener('mouseleave', amagaGlobus);
+    el.addEventListener('click', (e) => { mostraGlobus(e, html); setTimeout(amagaGlobus, 2200); });
+  }
+
+  function botoTaula(contenidor, construeix){
+    const b = document.createElement('button');
+    b.className = 'veure-dades';
+    b.textContent = 'Veure les dades';
+    let taula = null;
+    b.addEventListener('click', () => {
+      if (taula){ taula.remove(); taula = null; b.textContent = 'Veure les dades'; return; }
+      taula = construeix();
+      contenidor.appendChild(taula);
+      b.textContent = 'Amagar les dades';
+    });
+    contenidor.appendChild(b);
+  }
+
+  // ------------------------------------------------- 1) minuts per concepte
+  function blocConceptes(registres){
+    const perConcepte = {};
+    registres.forEach(r => {
+      const c = (r.concepte || '').trim();
+      if (!c) return;
+      perConcepte[c] = (perConcepte[c] || 0) + num(r.minuts);
+    });
+    let llista = Object.keys(perConcepte).map(c => ({ nom: c, min: perConcepte[c] }))
+                       .sort((a, b) => b.min - a.min);
+
+    // La cua s'agrupa en "Altres" en comptes d'allargar la llista fins a 22.
+    const TALL = 10;
+    if (llista.length > TALL + 1){
+      const cua = llista.slice(TALL);
+      llista = llista.slice(0, TALL);
+      llista.push({ nom: 'Altres (' + cua.length + ')', min: cua.reduce((s, x) => s + x.min, 0) });
+    }
+    const max = Math.max.apply(null, llista.map(x => x.min));
+    const total = llista.reduce((s, x) => s + x.min, 0);
+
+    const bloc = document.createElement('div');
+    bloc.className = 'bloc';
+    bloc.innerHTML = '<div class="bloc-cap">' +
+      '<div class="bloc-titol">En què hem entrenat</div>' +
+      '<div class="bloc-sub">Minuts acumulats per concepte</div></div>';
+
+    const panell = document.createElement('div');
+    panell.className = 'panell';
+    llista.forEach(x => {
+      const fila = document.createElement('div');
+      fila.className = 'barra-fila';
+      const pct = Math.round(x.min / total * 100);
+      fila.innerHTML =
+        '<div class="barra-cap">' +
+          '<span class="barra-nom">' + escapa(x.nom) + '</span>' +
+          '<span class="barra-valor">' + x.min + ' min</span>' +
+        '</div>' +
+        '<div class="barra-pista"><div class="barra-plena" data-w="' + (x.min / max * 100) + '"></div></div>';
+      enganxaGlobus(fila, '<b>' + escapa(x.nom) + '</b>' +
+        '<span class="g-sub">' + x.min + ' minuts · ' + pct + '% del total</span>');
+      panell.appendChild(fila);
+    });
+    bloc.appendChild(panell);
+
+    botoTaula(bloc, () => {
+      const t = document.createElement('table');
+      t.className = 'dades';
+      t.innerHTML = '<thead><tr><th>Concepte</th><th>Minuts</th><th>%</th></tr></thead><tbody>' +
+        llista.map(x => '<tr><td>' + escapa(x.nom) + '</td><td>' + x.min + '</td><td>' +
+          Math.round(x.min / total * 100) + '%</td></tr>').join('') + '</tbody>';
+      return t;
+    });
+    return bloc;
+  }
+
+  // ------------------------------------------- 2) cansament, barres divergents
+  function blocCansament(feedback){
+    const setmanes = {};
+    feedback.forEach(f => {
+      const i = ESCALA.indexOf((f.cansament || '').trim());
+      if (i < 0 || !f.data) return;
+      const s = dilluns(f.data);
+      if (!setmanes[s]) setmanes[s] = [0, 0, 0, 0, 0];
+      setmanes[s][i]++;
+    });
+    const claus = Object.keys(setmanes).sort();
+    if (!claus.length) return null;
+
+    // Cada setmana es reparteix en parts que sumen 1. El centre de la barra
+    // cau al mig del tram "Normal": el que queda a l'esquerra son les
+    // respostes bones i el que queda a la dreta, les de cansament.
+    const files = claus.map(s => {
+      const c = setmanes[s];
+      const n = c.reduce((a, b) => a + b, 0);
+      const p = c.map(v => v / n);
+      return { setmana: s, compte: c, n: n, p: p,
+               esq: p[0] + p[1] + p[2] / 2, dre: p[2] / 2 + p[3] + p[4] };
+    });
+    const maxEsq = Math.max.apply(null, files.map(f => f.esq));
+    const maxDre = Math.max.apply(null, files.map(f => f.dre));
+
+    const ALT = 26, BARRA = 13, MARGE_E = 42, MARGE_D = 8;
+    const alt = files.length * ALT + 18;
+
+    const bloc = document.createElement('div');
+    bloc.className = 'bloc';
+    bloc.innerHTML = '<div class="bloc-cap">' +
+      '<div class="bloc-titol">Com hem acabat</div>' +
+      '<div class="bloc-sub">Repartiment de les respostes de cada setmana. ' +
+      'Com més cap a la dreta, més cansament.</div></div>';
+
+    const panell = document.createElement('div');
+    panell.className = 'panell';
+    const ampla = 320; // coordenades internes; l'SVG s'escala sol
+    const plot = ampla - MARGE_E - MARGE_D;
+    const centre = MARGE_E + plot * (maxEsq / (maxEsq + maxDre));
+    const escala = (v) => v * plot / (maxEsq + maxDre);
+
+    let svg = '<svg viewBox="0 0 ' + ampla + ' ' + alt + '" role="img" ' +
+              'aria-label="Repartiment del cansament per setmana">';
+    svg += '<line x1="' + centre + '" y1="2" x2="' + centre + '" y2="' + (files.length * ALT + 2) +
+           '" stroke="var(--eix)" stroke-width="1"/>';
+
+    files.forEach((f, idx) => {
+      const y = idx * ALT + 4;
+      svg += '<text class="eix-txt" x="0" y="' + (y + BARRA / 2 + 3.5) + '">' +
+             etiquetaSetmana(f.setmana) + '</text>';
+      let x = centre - escala(f.esq);
+      f.p.forEach((part, i) => {
+        if (part <= 0) return;
+        const w = escala(part);
+        // 2px de separacio entre trams: espai de superficie, no una vora
+        const w2 = Math.max(w - 2, 0.5);
+        svg += '<rect class="tram" x="' + x + '" y="' + y + '" width="' + w2 +
+               '" height="' + BARRA + '" rx="2" fill="' + COLOR_ESCALA[i] +
+               '" data-i="' + idx + '" data-e="' + i + '"/>';
+        x += w;
+      });
+    });
+    svg += '</svg>';
+    panell.innerHTML = svg;
+
+    panell.querySelectorAll('.tram').forEach(r => {
+      const f = files[+r.dataset.i], i = +r.dataset.e;
+      enganxaGlobus(r, '<b>Setmana del ' + etiquetaSetmana(f.setmana) + '</b>' +
+        '<span class="g-sub">' + ESCALA[i] + ' — ' + Math.round(f.p[i] * 100) + '% (' +
+        f.compte[i] + ' de ' + f.n + ')</span>');
+    });
+
+    const lleg = document.createElement('div');
+    lleg.className = 'llegenda';
+    lleg.innerHTML = ESCALA.map((e, i) =>
+      '<span><i class="mostra" style="background:' + COLOR_ESCALA[i] + '"></i>' + escapa(e) + '</span>'
+    ).join('');
+    panell.appendChild(lleg);
+    bloc.appendChild(panell);
+
+    botoTaula(bloc, () => {
+      const t = document.createElement('table');
+      t.className = 'dades';
+      t.innerHTML = '<thead><tr><th>Setmana</th>' +
+        ESCALA.map(e => '<th>' + escapa(e) + '</th>').join('') + '</tr></thead><tbody>' +
+        files.map(f => '<tr><td>' + etiquetaSetmana(f.setmana) + '</td>' +
+          f.compte.map(c => '<td>' + c + '</td>').join('') + '</tr>').join('') + '</tbody>';
+      return t;
+    });
+    return bloc;
+  }
+
+  // ------------------------------------------------- 3) minuts per setmana
+  function blocVolum(registres){
+    const setmanes = {};
+    registres.forEach(r => {
+      if (!r.data) return;
+      const s = dilluns(r.data);
+      setmanes[s] = (setmanes[s] || 0) + num(r.minuts);
+    });
+    const claus = Object.keys(setmanes).sort();
+    if (claus.length < 2) return null;
+    const max = Math.max.apply(null, claus.map(s => setmanes[s]));
+
+    const ampla = 320, alt = 130, BASE = alt - 20, DALT = 8;
+    const pas = ampla / claus.length;
+    const ampleCol = Math.min(pas - 8, 34);
+
+    const bloc = document.createElement('div');
+    bloc.className = 'bloc';
+    bloc.innerHTML = '<div class="bloc-cap">' +
+      '<div class="bloc-titol">Quanta feina, cada setmana</div>' +
+      '<div class="bloc-sub">Minuts entrenats per setmana</div></div>';
+
+    const panell = document.createElement('div');
+    panell.className = 'panell';
+
+    let svg = '<svg viewBox="0 0 ' + ampla + ' ' + alt + '" role="img" ' +
+              'aria-label="Minuts entrenats per setmana">';
+    // reixa horitzontal, fina i discreta
+    [0, 0.5, 1].forEach(t => {
+      const y = BASE - t * (BASE - DALT);
+      svg += '<line x1="0" y1="' + y + '" x2="' + ampla + '" y2="' + y +
+             '" stroke="var(--graella)" stroke-width="1"/>';
+      svg += '<text class="eix-txt" x="0" y="' + (y - 4) + '">' + Math.round(t * max) + '</text>';
+    });
+    claus.forEach((s, i) => {
+      const v = setmanes[s];
+      const h = Math.max((v / max) * (BASE - DALT), 1);
+      const x = i * pas + (pas - ampleCol) / 2;
+      svg += '<rect class="col" x="' + x + '" y="' + (BASE - h) + '" width="' + ampleCol +
+             '" height="' + h + '" rx="4" fill="var(--serie)" data-i="' + i + '"/>';
+      svg += '<text class="eix-txt" x="' + (x + ampleCol / 2) + '" y="' + (BASE + 13) +
+             '" text-anchor="middle">' + etiquetaSetmana(s) + '</text>';
+    });
+    svg += '</svg>';
+    panell.innerHTML = svg;
+
+    panell.querySelectorAll('.col').forEach(r => {
+      const s = claus[+r.dataset.i];
+      enganxaGlobus(r, '<b>Setmana del ' + etiquetaSetmana(s) + '</b>' +
+        '<span class="g-sub">' + setmanes[s] + ' minuts</span>');
+    });
+    bloc.appendChild(panell);
+
+    botoTaula(bloc, () => {
+      const t = document.createElement('table');
+      t.className = 'dades';
+      t.innerHTML = '<thead><tr><th>Setmana</th><th>Minuts</th></tr></thead><tbody>' +
+        claus.map(s => '<tr><td>' + etiquetaSetmana(s) + '</td><td>' + setmanes[s] + '</td></tr>').join('') +
+        '</tbody>';
+      return t;
+    });
+    return bloc;
+  }
+
+  // ------------------------------------------------- 4) imatges del Drive
+  /* Un enllac normal de compartir del Drive no es pot posar a un <img>: apunta
+     a la pagina del visor, no al fitxer. N'extraiem l'identificador i muntem
+     l'adreca que si que serveix la imatge, aixi es veu dins de la pagina i no
+     cal sortir al Drive. Si ja ens donen una adreca d'imatge directa, la
+     deixem tal qual. */
+  function idDeDrive(url){
+    const m = String(url).match(/\/file\/d\/([\w-]{10,})/) ||
+              String(url).match(/[?&]id=([\w-]{10,})/) ||
+              String(url).match(/\/d\/([\w-]{10,})/);
+    return m ? m[1] : null;
+  }
+  function adrecaImatge(url, ample){
+    const id = idDeDrive(url);
+    return id ? 'https://drive.google.com/thumbnail?id=' + id + '&sz=w' + ample : url;
+  }
+
+  const visor = document.getElementById('visor');
+  function obreVisor(src, alt){
+    const img = visor.querySelector('img');
+    img.src = src; img.alt = alt || '';
+    visor.classList.add('obert');
+  }
+  visor.addEventListener('click', () => visor.classList.remove('obert'));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') visor.classList.remove('obert'); });
+
+  function blocImatges(imatges){
+    const llista = (imatges || []).filter(x => x && x.url);
+    if (!llista.length) return null;   // sense pestanya o sense files, no surt res
+
+    const bloc = document.createElement('div');
+    bloc.className = 'bloc';
+    bloc.innerHTML = '<div class="bloc-cap">' +
+      '<div class="bloc-titol">Més gràfics</div>' +
+      `<div class="bloc-sub">Els que prepara l'staff. Toca'ls per veure'ls grans.</div></div>`;
+
+    const graella = document.createElement('div');
+    graella.className = 'imatges';
+    llista.forEach(x => {
+      const petita = adrecaImatge(x.url, 1000);
+      const gran = adrecaImatge(x.url, 2000);
+      const card = document.createElement('div');
+      card.className = 'imatge';
+      card.innerHTML = '<img src="' + escapa(petita) + '" alt="' + escapa(x.titol || '') + '">' +
+        '<div class="imatge-peu"><span class="imatge-titol">' + escapa(x.titol || 'Sense títol') + '</span>' +
+        (x.data ? '<span class="imatge-data">' + escapa(x.data) + '</span>' : '') + '</div>';
+      const img = card.querySelector('img');
+      // Si el fitxer no esta compartit, el Drive no el serveix: ho diem clar
+      // en comptes de deixar un forat negre.
+      img.addEventListener('error', () => {
+        img.remove();
+        const avis = document.createElement('div');
+        avis.className = 'imatge-error';
+        avis.innerHTML = `No s'ha pogut carregar. Comprova que al Drive estigui compartida ` +
+                         `com a <b>qualsevol amb l'enllaç</b>.`;
+        card.prepend(avis);
+        card.style.cursor = 'default';
+      });
+      card.addEventListener('click', () => { if (card.querySelector('img')) obreVisor(gran, x.titol); });
+      graella.appendChild(card);
+    });
+    bloc.appendChild(graella);
+    return bloc;
+  }
+
+  // ---------------------------------------------------------------- muntatge
+  function pinta(d){
+    const registres = d.registres || [];
+    const feedback = d.feedback || [];
+    const box = document.getElementById('contingut');
+    box.innerHTML = '';
+
+    if (!registres.length && !feedback.length && !(d.imatges || []).length){
+      box.innerHTML = '<div class="estat">Encara no hi ha prou dades per dibuixar res.</div>';
+      return;
+    }
+
+    const dies = new Set(registres.map(r => r.data)).size;
+    const minuts = registres.reduce((s, r) => s + num(r.minuts), 0);
+    const xifres = document.createElement('div');
+    xifres.className = 'xifres';
+    xifres.innerHTML =
+      '<div class="xifra"><div class="xifra-valor">' + dies + '</div><div class="xifra-etiqueta">Entrenaments</div></div>' +
+      '<div class="xifra"><div class="xifra-valor">' + Math.round(minuts / 60) + ' h</div><div class="xifra-etiqueta">De feina</div></div>' +
+      '<div class="xifra"><div class="xifra-valor">' + feedback.length + '</div><div class="xifra-etiqueta">Respostes</div></div>';
+    box.appendChild(xifres);
+
+    [blocConceptes(registres), blocCansament(feedback), blocVolum(registres),
+     blocImatges(d.imatges)]
+      .forEach(b => { if (b) box.appendChild(b); });
+
+    const b = document.createElement('button');
+    b.className = 'refresca';
+    b.textContent = 'Actualitzar';
+    b.addEventListener('click', carrega);
+    box.appendChild(b);
+
+    // les barres creixen des de zero
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      box.querySelectorAll('.barra-plena').forEach(el => { el.style.width = el.dataset.w + '%'; });
+    }));
+  }
+
+  async function carrega(){
+    const box = document.getElementById('contingut');
+    box.innerHTML = '<div class="estat">Carregant...</div>';
+    try{
+      pinta(await apiLlegeix());
+    } catch(err){
+      box.innerHTML = '<div class="estat">No s\'han pogut carregar les dades.<br>' +
+        'Torna-ho a provar d\'aquí un moment.' +
+        '<button class="refresca" onclick="carrega()">Tornar a provar</button></div>';
+    }
+  }
+
+  carrega();
+</script>
+</body>
+</html>
