@@ -525,6 +525,14 @@
   visor.addEventListener('click', () => visor.classList.remove('obert'));
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') visor.classList.remove('obert'); });
 
+  /* Imatges que viuen al propi repo. Van a la mateixa seccio que les que
+     arribin de la pestanya "Imatges" del full, i surten primer. No porten
+     data a posta: cadascuna ja en duu una a dins. */
+  const IMATGES_LOCALS = [
+    { titol: 'Un cel de tirs', url: 'imatges/cel-de-tirs.jpg' },
+    { titol: "L'equip", url: 'imatges/equip.jpg' }
+  ];
+
   function blocImatges(imatges){
     const llista = (imatges || []).filter(x => x && x.url);
     if (!llista.length) return null;   // sense pestanya o sense files, no surt res
@@ -571,7 +579,7 @@
     const box = document.getElementById('contingut');
     box.innerHTML = '';
 
-    if (!registres.length && !feedback.length && !(d.imatges || []).length){
+    if (!registres.length && !feedback.length){
       box.innerHTML = '<div class="estat">Encara no hi ha prou dades per dibuixar res.</div>';
       return;
     }
@@ -587,7 +595,7 @@
     box.appendChild(xifres);
 
     [blocConceptes(registres), blocCansament(feedback), blocVolum(registres),
-     blocImatges(d.imatges)]
+     blocImatges(IMATGES_LOCALS.concat(d.imatges || []))]
       .forEach(b => { if (b) box.appendChild(b); });
 
     const b = document.createElement('button');
