@@ -1,0 +1,213 @@
+<title>Floració Nocturna</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg-deep:   #150f1c;
+    --bg-mid:    #211729;
+    --card:      #1c1422;
+    --card-edge: rgba(255,255,255,0.07);
+    --ink:       #f1e9e2;
+    --ink-dim:   rgba(241,233,226,0.6);
+
+    --s1: #5b3a73;
+    --s2: #93567a;
+    --s3: #c98a5b;
+    --s4: #e0a94a;
+    --s5: #f2c94c;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: radial-gradient(120% 90% at 50% 10%, var(--bg-mid) 0%, var(--bg-deep) 65%, #0b0710 100%);
+    color: var(--ink);
+    font-family: "Archivo", system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 18px 56px;
+  }
+  .card{
+    width: min(620px, 94vw);
+    background: var(--card);
+    border: 1px solid var(--card-edge);
+    border-radius: 18px;
+    box-shadow: 0 30px 80px -30px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.04) inset;
+    padding: clamp(30px, 5vw, 48px) clamp(18px, 5vw, 44px) 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .flower-wrap{
+    width: min(480px, 84vw);
+    margin: 4px 0 2px;
+  }
+  .flower-wrap svg{ width: 100%; height: auto; display: block; }
+
+  .stats{
+    font-size: 13px;
+    color: var(--ink-dim);
+    font-variant-numeric: tabular-nums;
+    margin-top: 4px;
+  }
+
+  .legend{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 18px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--card-edge);
+    width: 100%;
+  }
+  .legend .item{
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12.5px;
+    color: var(--ink-dim);
+  }
+  .legend .swatch{
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    flex: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference){
+    .flower-wrap{ animation: rise .9s ease-out; }
+    .petal{ transition: opacity .3s ease; }
+  }
+  @keyframes rise{
+    from{ opacity: 0; transform: translateY(10px) scale(.98); }
+    to{ opacity: 1; transform: translateY(0) scale(1); }
+  }
+</style>
+
+<div class="card">
+  <div class="flower-wrap">
+    <svg viewBox="0 0 760 760" xmlns="http://www.w3.org/2000/svg" id="flowerSvg"></svg>
+  </div>
+  <div class="stats" id="statsLine"></div>
+  <div class="legend">
+    <div class="item"><span class="swatch" style="background:var(--s1)"></span>Molt cansada</div>
+    <div class="item"><span class="swatch" style="background:var(--s2)"></span>Cansada</div>
+    <div class="item"><span class="swatch" style="background:var(--s3)"></span>Normal</div>
+    <div class="item"><span class="swatch" style="background:var(--s4)"></span>Bé</div>
+    <div class="item"><span class="swatch" style="background:var(--s5)"></span>Molt bé</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var ROWS = __WELLNESS_DATA__;
+
+  var LEVEL_NAMES = {1:'Molt cansada', 2:'Cansada', 3:'Normal', 4:'Bé', 5:'Molt bé'};
+  var COLORS = {1:'#5b3a73', 2:'#93567a', 3:'#c98a5b', 4:'#e0a94a', 5:'#f2c94c'};
+
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs){
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  var n = ROWS.length;
+  var cx = 380, cy = 380;
+  var GA = 137.50776405003785 * Math.PI/180;
+  var C = 300/Math.sqrt(n+0.5);
+
+  var svg = document.getElementById('flowerSvg');
+  var defs = el('defs', {});
+  svg.appendChild(defs);
+
+  // one radial "glow" gradient per score, reused by every petal of that score
+  for (var s=1; s<=5; s++){
+    var grad = el('radialGradient', {id:'pg'+s, cx:'35%', cy:'35%', r:'75%'});
+    var lighten = ['#8f6ea8','#c088a0','#e6b98d','#f3cd80','#fadf7d'][s-1];
+    grad.appendChild(el('stop', {offset:'0%', 'stop-color':lighten}));
+    grad.appendChild(el('stop', {offset:'100%', 'stop-color':COLORS[s]}));
+    defs.appendChild(grad);
+  }
+  var glow = el('filter', {id:'softGlow', x:'-100%', y:'-100%', width:'300%', height:'300%'});
+  glow.appendChild(el('feGaussianBlur', {stdDeviation:'3.2'}));
+  defs.appendChild(glow);
+
+  svg.appendChild(el('ellipse', {cx:cx, cy:cy+8, rx:300, ry:260, fill:'#000000', opacity:0.28}));
+
+  var glowLayer = el('g', {});
+  var petalLayer = el('g', {});
+  svg.appendChild(glowLayer);
+  svg.appendChild(petalLayer);
+
+  for (var i=0;i<n;i++){
+    var score = ROWS[i][1];
+    var date = ROWS[i][0];
+    var angle = i*GA;
+    var radius = C*Math.sqrt(i+0.5);
+    var sizeFactor = 0.55 + 0.65*(i/(n-1));
+    var length = (26 + score*8) * sizeFactor;
+    var width = (10 + score*2.6) * sizeFactor;
+
+    var px = cx + radius*Math.cos(angle);
+    var py = cy + radius*Math.sin(angle);
+    var rotDeg = angle*180/Math.PI;
+    var transform = 'translate('+px.toFixed(1)+','+py.toFixed(1)+') rotate('+rotDeg.toFixed(1)+')';
+
+    // fuller, rounder petal: a lens shape with generous control-point width
+    // and a fully rounded tip (no point), closer to a dahlia floret.
+    var d = 'M0,0 '+
+            'C'+(length*0.18).toFixed(1)+','+(width*1.05).toFixed(1)+' '+(length*0.7).toFixed(1)+','+(width*0.85).toFixed(1)+' '+length.toFixed(1)+',0 '+
+            'C'+(length*0.7).toFixed(1)+','+(-width*0.85).toFixed(1)+' '+(length*0.18).toFixed(1)+','+(-width*1.05).toFixed(1)+' 0,0 Z';
+
+    if (score>=4){
+      var g2 = el('g', {transform:transform});
+      var glowPetal = el('path', {d:d, fill:COLORS[score], filter:'url(#softGlow)', opacity:0.55});
+      g2.appendChild(glowPetal);
+      glowLayer.appendChild(g2);
+    }
+
+    var g = el('g', {transform:transform, class:'petal'});
+    var petal = el('path', {d:d, fill:'url(#pg'+score+')'});
+    g.appendChild(petal);
+    var title = el('title', {});
+    title.textContent = date + ' — ' + LEVEL_NAMES[score];
+    g.appendChild(title);
+    petalLayer.appendChild(g);
+  }
+
+  // dark glossy seed-head with gold flecks
+  var discR = C*Math.sqrt(0.9) + 7;
+  svg.appendChild(el('circle', {cx:cx, cy:cy, r:discR+7, fill:'#000000', opacity:0.35}));
+  var discGrad = el('radialGradient', {id:'discGrad', cx:'38%', cy:'32%', r:'75%'});
+  discGrad.appendChild(el('stop', {offset:'0%', 'stop-color':'#3a2f42'}));
+  discGrad.appendChild(el('stop', {offset:'100%', 'stop-color':'#1a1420'}));
+  defs.appendChild(discGrad);
+  svg.appendChild(el('circle', {cx:cx, cy:cy, r:discR, fill:'url(#discGrad)'}));
+
+  var dotN = 70;
+  var dotC = discR/Math.sqrt(dotN+0.5);
+  for (var j=0;j<dotN;j++){
+    var da = j*GA, dr = dotC*Math.sqrt(j+0.5);
+    var dx = cx + dr*Math.cos(da), dy = cy + dr*Math.sin(da);
+    var shade = (j%4===0) ? '#f2c94c' : '#4a3d54';
+    svg.appendChild(el('circle', {cx:dx.toFixed(1), cy:dy.toFixed(1), r:1.9, fill:shade, opacity: (j%4===0)?0.8:0.6}));
+  }
+
+  var dates = ROWS.map(function(r){return r[0];});
+  var first = dates[0], last = dates[dates.length-1];
+  function fmtDate(s){
+    var p = s.split('-');
+    var months = ['gen','feb','mar','abr','maig','juny','jul','ago','set','oct','nov','des'];
+    return parseInt(p[2],10) + ' ' + months[parseInt(p[1],10)-1];
+  }
+  document.getElementById('statsLine').textContent =
+    n + ' respostes · ' + fmtDate(first) + ' – ' + fmtDate(last) + ' 2026';
+
+})();
+</script>
