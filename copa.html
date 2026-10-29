@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Estadístiques COPA · Manresa</title>
+<meta name="theme-color" content="#11141a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#11141a; --bg-raised:#181c24; --bg-raised-2:#1e2330;
+    --line:#2a2f3a; --pink:#ff2d78; --pink-dim:#c21f5c;
+    --text:#f2f1ee; --text-dim:#8b93a3;
+    --ok:#3ddc97; --mal:#ff5a4e;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  /* Diu al navegador que la pagina es fosca: aixi el desplegable dels filtres,
+     les fletxes i les barres de desplaçament els pinta foscos ell mateix, en
+     lloc del blanc per defecte del sistema. */
+  html{color-scheme:dark;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--text);}
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    min-height:100vh; min-height:100dvh;
+    padding: max(20px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom));
+  }
+  .wrap{width:100%; max-width:1000px; margin:0 auto;}
+
+  .topbar{display:flex; align-items:center; gap:12px; margin-bottom:18px;}
+  .back-btn{
+    width:38px; height:38px; border-radius:10px;
+    background:var(--bg-raised); border:1px solid var(--line);
+    color:var(--text); display:flex; align-items:center; justify-content:center;
+    text-decoration:none; flex:0 0 auto;
+  }
+  .topbar h1{
+    font-family:'Oswald',sans-serif; font-weight:700; font-size:21px;
+    text-transform:uppercase; letter-spacing:.01em; margin:0;
+  }
+
+  /* ---- pestanyes ---- */
+  .tabs{display:flex; gap:6px; margin-bottom:14px;}
+  .tab{
+    flex:1; padding:10px 8px; border-radius:10px; cursor:pointer;
+    background:var(--bg-raised); border:1px solid var(--line); color:var(--text-dim);
+    font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:.08em;
+    text-transform:uppercase; text-align:center;
+  }
+  .tab.actiu{background:var(--pink); border-color:var(--pink); color:#11141a; font-weight:600;}
+
+  /* ---- filtres ---- */
+  .filtres{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;}
+  .filtres select{
+    flex:0 1 auto; max-width:48%;
+    /* Fletxa propia: la del sistema no segueix el color del text. */
+    appearance:none; -webkit-appearance:none;
+    background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238b93a3' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 10px center;
+    padding-right:28px;
+  }
+  /* Les opcions desplegades: alguns navegadors les pinten segons aixo. */
+  .filtres select option{background:var(--bg-raised); color:var(--text);}
+  .filtres select, .filtres input{
+    background-color:var(--bg-raised); border:1px solid var(--line); color:var(--text);
+    border-radius:9px; padding:9px 10px; font-family:'Inter',sans-serif; font-size:12.5px;
+    min-width:0;
+  }
+  .filtres input[type="search"]{flex:1; min-width:130px;}
+  .filtres label{
+    display:flex; align-items:center; gap:6px; flex:0 0 auto;
+    white-space:nowrap;
+    font-size:11px; color:var(--text-dim);
+    background:var(--bg-raised); border:1px solid var(--line);
+    border-radius:9px; padding:0 10px 0 12px;
+  }
+  .filtres label input{border:none; background:none; padding:9px 0; width:52px;}
+
+  /* ---- taula ---- */
+  /* El contenidor és el que llisca en horitzontal: la pàgina no s'ha de moure mai. */
+  .taula-caixa{
+    background:var(--bg-raised); border:1px solid var(--line);
+    border-radius:12px; overflow-x:auto; -webkit-overflow-scrolling:touch;
+  }
+  table{border-collapse:separate; border-spacing:0; width:100%; font-size:12px;}
+  th, td{padding:8px 9px; white-space:nowrap; font-variant-numeric:tabular-nums;}
+  th{
+    position:sticky; top:0; z-index:2;
+    background:var(--bg-raised-2); color:var(--text-dim);
+    font-weight:600; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em;
+    cursor:pointer; user-select:none; border-bottom:1px solid var(--line);
+  }
+  th:hover{color:var(--text);}
+  th.ordenat{color:var(--pink);}
+  th .fletxa{font-size:9px; margin-left:3px;}
+  td{border-bottom:1px solid var(--line);}
+  tbody tr:last-child td{border-bottom:none;}
+  /* Primera columna fixa: el nom sempre visible mentre es llisca. */
+  th:first-child, td:first-child{
+    position:sticky; left:0; z-index:1; text-align:left;
+    background:var(--bg-raised); max-width:150px; overflow:hidden; text-overflow:ellipsis;
+  }
+  th:first-child{z-index:3; background:var(--bg-raised-2);}
+  td:not(:first-child), th:not(:first-child){text-align:right;}
+  tbody tr:hover td{background:var(--bg-raised-2);}
+  tbody tr:hover td:first-child{background:var(--bg-raised-2);}
+  .pos{color:var(--ok);} .neg{color:var(--mal);}
+  .fluix{color:var(--text-dim);}
+
+  /* Les parelles son dos noms sencers i no caben en una linia. En comptes de
+     tallar-los o de posar un desplacament dins la cel·la -que competiria amb el
+     de la taula-, es parteixen en dues linies. */
+  .vista-parelles td:first-child, .vista-parelles th:first-child{
+    /* min-width i no width: amb tantes columnes, la taula encongeix el que pot
+       i un 'width' no s'hi resisteix. */
+    white-space:normal; max-width:none; min-width:168px; line-height:1.3;
+  }
+  .vista-parelles .jug2{display:block; color:var(--text-dim);}
+  .vista-parelles .jug2::before{content:"+ ";}
+
+  /* Els quintets son cinc noms: mateix problema que les parelles, i prou
+     ample perque no quedi un nom sol per linia. */
+  .vista-quintets td:first-child, .vista-quintets th:first-child{
+    white-space:normal; max-width:none; min-width:190px; line-height:1.35;
+  }
+
+  /* ---- quintets: tria de jugadores ---- */
+  .qui-tria{flex:1 1 100%; display:flex; flex-wrap:wrap; gap:6px;}
+  /* El gruix de la lletra no canvia en triar-la: si la casella triada es
+     feia negreta, s'eixamplava i desplacava totes les de la dreta, i al mobil
+     el nom que volies tocar despres ja no hi era. El color ja distingeix. */
+  .qui-chip{
+    background:var(--bg-raised); border:1px solid var(--line); color:var(--text);
+    border-radius:8px; padding:7px 11px; font-size:12px; font-weight:500;
+    font-family:'Inter',sans-serif; cursor:pointer;
+  }
+  .qui-chip.tria{background:var(--pink); border-color:var(--pink); color:#11141a;}
+  /* Amb cinc ja triades, les altres es veuen apagades: aixi es veu que el
+     quintet esta ple sense haver de desactivar-les (desactivades, tocar-les
+     no diria res i semblaria que l'app no respon). */
+  .qui-chip.ple{opacity:.4;}
+  .qui-compte{
+    flex:1 1 100%; display:flex; align-items:center; gap:10px;
+    font-size:11px; color:var(--text-dim);
+  }
+  .qui-neteja{
+    background:none; border:1px solid var(--line); color:var(--text-dim);
+    border-radius:7px; padding:4px 9px; cursor:pointer;
+    font-family:'Oswald',sans-serif; font-size:10px;
+    letter-spacing:.08em; text-transform:uppercase;
+  }
+  /* Fitxa del quintet complet: el +/- acumulat, gros, i la resta al costat. */
+  .qui-fitxa{
+    background:var(--bg-raised); border:1px solid var(--line);
+    border-radius:12px; padding:16px;
+  }
+  .qui-cinc{font-size:12.5px; line-height:1.55; margin-bottom:14px;}
+  .qui-cinc b{font-weight:600;}
+  .qui-gran{display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
+  .qui-pm{font-family:'Oswald',sans-serif; font-size:42px; line-height:.9;}
+  .qui-pm.pos{color:var(--ok);}
+  .qui-pm.neg{color:var(--mal);}
+  .qui-detall{font-size:11.5px; color:var(--text-dim); line-height:1.7;}
+  .qui-detall b{color:var(--text); font-variant-numeric:tabular-nums;}
+
+  /* ---- grafic de barres per equip ----
+     Una barra per equip, ordenades, amb el teu en rosa i la resta en gris.
+     Es la forma d'emfasi: el que importa es on ets tu, no distingir catorze
+     equips per color. */
+  .bg-sel{display:flex; gap:8px; margin-bottom:12px;}
+  .bg-llista{
+    background:var(--bg-raised); border:1px solid var(--line);
+    border-radius:12px; padding:14px 14px 12px;
+  }
+  .bg-fila{display:flex; align-items:center; gap:9px; margin-bottom:8px;}
+  .bg-fila:last-child{margin-bottom:0;}
+  .bg-nom{
+    width:88px; flex:0 0 auto; font-size:11px; color:var(--text-dim);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:right;
+  }
+  .bg-fila.jo .bg-nom{color:var(--text); font-weight:600;}
+  .bg-pista{flex:1; min-width:0; height:14px; position:relative;}
+  .bg-barra{
+    position:absolute; top:0; height:14px; border-radius:3px;
+    background:var(--line); width:0; transition:width .7s cubic-bezier(.22,.9,.3,1), left .7s;
+  }
+  .bg-fila.jo .bg-barra{background:var(--pink);}
+  .bg-val{
+    width:42px; flex:0 0 auto; font-size:11px; text-align:right;
+    font-variant-numeric:tabular-nums; color:var(--text-dim);
+  }
+  .bg-fila.jo .bg-val{color:var(--text); font-weight:600;}
+  .bg-mediana{position:absolute; top:-3px; bottom:-3px; width:1px; background:var(--text-dim); opacity:.5;}
+
+  /* ---- percentils ---- */
+  .pc-cap{
+    background:var(--bg-raised); border:1px solid var(--line); border-radius:12px;
+    padding:14px 16px; margin-bottom:14px;
+  }
+  .pc-equip{font-family:'Oswald',sans-serif; font-size:18px; text-transform:uppercase;}
+  .pc-sub{font-size:11.5px; color:var(--text-dim); margin-top:4px; line-height:1.45;}
+  .pc-llista{
+    background:var(--bg-raised); border:1px solid var(--line);
+    border-radius:12px; padding:14px 16px;
+  }
+  .pc-fila{margin-bottom:15px;}
+  .pc-fila:last-child{margin-bottom:0;}
+  .pc-dalt{
+    display:flex; justify-content:space-between; align-items:baseline;
+    gap:10px; margin-bottom:5px; font-size:12px;
+  }
+  .pc-nom{color:var(--text);}
+  .pc-nom small{color:var(--text-dim); font-size:10px; margin-left:5px;}
+  .pc-val{color:var(--text-dim); font-variant-numeric:tabular-nums; flex:0 0 auto;}
+  .pc-val i{font-style:normal; opacity:.75; font-size:11px; margin-left:8px;}
+  .pc-val b{color:var(--text); font-family:'Oswald',sans-serif; font-size:13px; margin-left:8px;}
+  /* La pista va de 0 a 100. La marca del mig es la mediana de la lliga: a
+     l'esquerra, per sota de la meitat d'equips; a la dreta, per sobre. */
+  .pc-pista{position:relative; height:10px; background:var(--line); border-radius:5px; overflow:hidden;}
+  .pc-plena{height:100%; background:var(--pink); border-radius:5px; width:0; transition:width .8s cubic-bezier(.22,.9,.3,1);}
+  .pc-mediana{position:absolute; left:50%; top:-3px; bottom:-3px; width:1px; background:var(--text-dim); opacity:.7;}
+  .pc-peu{display:flex; justify-content:space-between; font-size:9.5px; color:var(--text-dim); margin-top:4px;}
+
+  /* ---- contribucio per companya ---- */
+  .co-fila{margin-bottom:14px;}
+  .co-fila:last-child{margin-bottom:0;}
+  .co-dalt{display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin-bottom:5px; font-size:12px;}
+  .co-nom{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .co-nom small{color:var(--text-dim); font-size:10px; margin-left:6px;}
+  .co-val{flex:0 0 auto; font-variant-numeric:tabular-nums; color:var(--text-dim);}
+  .co-val b{font-family:'Oswald',sans-serif; font-size:13px; margin-left:8px;}
+  /* Pista amb el zero al mig: a la dreta l'equip guanya amb elles dues a
+     pista, a l'esquerra perd. El diamant es la mitjana propia de la companya. */
+  .co-pista{position:relative; height:16px;}
+  .co-eix{position:absolute; left:0; right:0; top:50%; height:1px; background:var(--line);}
+  .co-zero{position:absolute; top:0; bottom:0; width:1px; background:var(--text-dim); opacity:.55;}
+  .co-barra{position:absolute; top:5px; height:6px; border-radius:3px; background:var(--pink); transition:all .8s cubic-bezier(.22,.9,.3,1);}
+  .co-barra.neg{background:var(--mal);}
+  .co-diamant{
+    position:absolute; top:50%; width:8px; height:8px; margin:-4px 0 0 -4px;
+    background:var(--text); transform:rotate(45deg); border-radius:1px;
+  }
+  .co-llegenda{display:flex; gap:16px; font-size:10.5px; color:var(--text-dim); margin:2px 2px 12px;}
+  .co-llegenda span{display:inline-flex; align-items:center; gap:6px;}
+  .co-mostra{width:14px; height:5px; border-radius:3px; background:var(--pink);}
+  .co-mostra.d{width:8px; height:8px; background:var(--text); transform:rotate(45deg); border-radius:1px;}
+
+  .nota{font-size:11px; color:var(--text-dim); margin-top:10px; line-height:1.5;}
+  .estat{
+    text-align:center; color:var(--text-dim); font-size:13px;
+    padding:36px 14px; line-height:1.6;
+  }
+  .estat b{color:var(--text);}
+  code{
+    background:var(--bg-raised-2); border:1px solid var(--line);
+    border-radius:5px; padding:1px 5px; font-size:11px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a href="index.html" class="back-btn" aria-label="Enrere">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <h1>Estadístiques COPA</h1>
+  </div>
+  <div id="contingut"><div class="estat">Carregant…</div></div>
+</div>
+
+<script>
+  /* ── Configuració ────────────────────────────────────────────────────────
+     URL i token del web app d'Apps Script instal·lat al full de la base COPA
+     (apps_script_copa.gs). Mentre no hi siguin, la pàgina ho diu i no peta. */
+  const COPA_URL = "https://script.google.com/macros/s/AKfycbwKWLjj8g_GxJJq902lBJQ0_xgmrSa24pc9jYhh1uunKavgw8csyZlOKIDDPKhtYsa_dg/exec";
+  const COPA_TOKEN = "martimarcelmartimarcelmartimarcelmartimarcelmarcimarcel34343434349999";
+  const TEMPORADA = "2026-27";
+  const COMPETICIO = "COPA";
+
+  /* Pestanyes que es veuen. AQUESTA CONSTANT ES L'UNICA DIFERENCIA entre el
+     copa.html de manresa-hub (staff: les cinc) i el de jugadores (sense
+     'jugadores', que son les dades individuals de cadascuna). La resta del
+     fitxer ha de ser identica als dos repos: si toques un, copia'l a l'altre
+     i torna-hi a posar la seva llista. */
+  const VISTES = [['equips', 'Equips'], ['parelles', 'Parelles'],
+                  ['quintets', 'Quintets'], ['percentils', 'Percentils']];
+
+  // Punts de classificació. L'especificació els deixa pendents de confirmar amb
+  // les bases de la FCBQ: si són uns altres, es canvien aquí i prou.
+  const PUNTS_VICTORIA = 2, PUNTS_DERROTA = 1;
+  // Llindar per fiar-se de l'On/Off d'una jugadora (possessions ON i OFF).
+  const MIN_POSS_ONOFF = 150;
+
+  const ESPERES = [1200, 3500], TEMPS_MAX = 12000;
+  const dorm = (ms) => new Promise(r => setTimeout(r, ms));
+  const escapa = (s) => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const n = (v) => { const x = parseFloat(v); return isNaN(x) ? 0 : x; };
+
+  async function llegeix(intents = 3){
+    const url = COPA_URL + (COPA_URL.includes('?') ? '&' : '?') +
+      'token=' + encodeURIComponent(COPA_TOKEN) +
+      '&temporada=' + encodeURIComponent(TEMPORADA) +
+      '&competicio=' + encodeURIComponent(COMPETICIO);
+    let ultim;
+    for (let i = 0; i < intents; i++){
+      const ctrl = new AbortController();
+      const id = setTimeout(() => ctrl.abort(), TEMPS_MAX);
+      try{
+        const res = await fetch(url, { cache: 'no-store', signal: ctrl.signal });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const d = await res.json();
+        if (d && d.error) throw new Error(d.error);
+        return d;
+      } catch(e){
+        ultim = e;
+        if (i < intents - 1) await dorm(ESPERES[Math.min(i, ESPERES.length - 1)]);
+      } finally { clearTimeout(id); }
+    }
+    throw ultim;
+  }
+
+  // cols/rows -> llista d'objectes
+  function aObjectes(taula){
+    if (!taula || !taula.cols) return [];
+    return (taula.rows || []).map(r => {
+      const o = {};
+      taula.cols.forEach((c, i) => { o[c] = r[i]; });
+      return o;
+    });
+  }
+
+  // ── Mètriques ───────────────────────────────────────────────────────────
+  const pct = (num, den) => den > 0 ? num / den * 100 : null;
+  const ts_pct = (pts, tci, tli) => pct(pts, 2 * (tci + 0.44 * tli));
+  const efg_pct = (t2c, t3c, tci) => pct(t2c + t3c + 0.5 * t3c, tci);
+
+  function agregaEquips(equipPartit, nomsCurts){
+    const per = {};
+    equipPartit.forEach(f => {
+      const k = f.equip_id;
+      if (!per[k]) per[k] = {
+        equip: k, nom_fcbq: f.equip, pj: 0, v: 0, d: 0, e: 0, pts: 0, pts_rival: 0,
+        poss: 0, poss_rival: 0, t2c: 0, t2i: 0, t3c: 0, t3i: 0,
+        tlc: 0, tli: 0, faltes: 0,
+      };
+      const a = per[k];
+      a.pj++;
+      if (f.resultat === 'V') a.v++; else if (f.resultat === 'D') a.d++; else a.e++;
+      ['pts','pts_rival','poss','poss_rival','t2c','t2i','t3c','t3i','tlc','tli','faltes']
+        .forEach(c => { a[c] += n(f[c]); });
+    });
+    return Object.values(per).map(a => {
+      const tci = a.t2i + a.t3i;
+      return Object.assign(a, {
+        nom: nomsCurts[a.equip] || a.equip,
+        punts_clas: a.v * PUNTS_VICTORIA + a.d * PUNTS_DERROTA,
+        pts_p: a.pj > 0 ? a.pts / a.pj : null,
+        pc_p: a.pj > 0 ? a.pts_rival / a.pj : null,
+        dif: a.pts - a.pts_rival,
+        off: pct(a.pts, a.poss),
+        def: pct(a.pts_rival, a.poss_rival),
+        net: pct(a.pts, a.poss) - pct(a.pts_rival, a.poss_rival),
+        ritme: a.pj > 0 ? (a.poss + a.poss_rival) / (2 * a.pj) : null,
+        ts: ts_pct(a.pts, tci, a.tli),
+        efg: efg_pct(a.t2c, a.t3c, tci),
+        tc_pct: pct(a.t2c + a.t3c, tci),
+        t2_pct: pct(a.t2c, a.t2i), t3_pct: pct(a.t3c, a.t3i), tl_pct: pct(a.tlc, a.tli),
+      });
+    });
+  }
+
+  function agregaJugadores(jugadoraPartit, equipPartit, nomsCurts){
+    // Totals de l'equip per partit: calen per deduir els valors OFF, que no es
+    // desen (OFF = total de l'equip − ON).
+    const totalEquip = {};
+    equipPartit.forEach(f => {
+      totalEquip[f.match_id + '|' + f.equip_id] = {
+        pts: n(f.pts), pts_rival: n(f.pts_rival),
+        poss: n(f.poss), poss_rival: n(f.poss_rival),
+        tci: n(f.t2i) + n(f.t3i), tli: n(f.tli),
+      };
+    });
+
+    const per = {};
+    jugadoraPartit.forEach(f => {
+      const k = f.equip_id + '|' + f.jugadora;
+      if (!per[k]) per[k] = {
+        jugadora: f.jugadora, equip: f.equip_id, pj: 0,
+        min: 0, pts: 0, t2c: 0, t2i: 0, t3c: 0, t3i: 0, tlc: 0, tli: 0, faltes: 0,
+        on_pts: 0, on_pts_c: 0, on_poss: 0, on_poss_r: 0, on_tci: 0, on_tli: 0,
+        off_pts: 0, off_pts_c: 0, off_poss: 0, off_poss_r: 0, off_tci: 0, off_tli: 0,
+      };
+      const a = per[k];
+      a.pj++;
+      ['min','pts','t2c','t2i','t3c','t3i','tlc','tli','faltes'].forEach(c => { a[c] += n(f[c]); });
+      a.on_pts   += n(f.eq_pts_on);       a.on_pts_c  += n(f.eq_pts_contra_on);
+      a.on_poss  += n(f.eq_poss_on);      a.on_poss_r += n(f.eq_poss_rival_on);
+      a.on_tci   += n(f.eq_tci_on);       a.on_tli    += n(f.eq_tli_on);
+
+      const t = totalEquip[f.match_id + '|' + f.equip_id];
+      if (t){
+        a.off_pts   += t.pts - n(f.eq_pts_on);
+        a.off_pts_c += t.pts_rival - n(f.eq_pts_contra_on);
+        a.off_poss  += t.poss - n(f.eq_poss_on);
+        a.off_poss_r+= t.poss_rival - n(f.eq_poss_rival_on);
+        a.off_tci   += t.tci - n(f.eq_tci_on);
+        a.off_tli   += t.tli - n(f.eq_tli_on);
+      }
+    });
+
+    return Object.values(per).map(a => {
+      const tci = a.t2i + a.t3i;
+      const netOn = pct(a.on_pts, a.on_poss) - pct(a.on_pts_c, a.on_poss_r);
+      const netOff = pct(a.off_pts, a.off_poss) - pct(a.off_pts_c, a.off_poss_r);
+      const fiable = a.on_poss >= MIN_POSS_ONOFF && a.off_poss >= MIN_POSS_ONOFF;
+      return Object.assign(a, {
+        nom: a.jugadora,
+        equip_curt: nomsCurts[a.equip] || a.equip,
+        min_p: a.pj > 0 ? a.min / a.pj : 0,
+        pts_p: a.pj > 0 ? a.pts / a.pj : 0,
+        faltes_p: a.pj > 0 ? a.faltes / a.pj : 0,
+        pts40: a.min > 0 ? 40 * a.pts / a.min : null,
+        ts: ts_pct(a.pts, tci, a.tli),
+        efg: efg_pct(a.t2c, a.t3c, tci),
+        tc_pct: pct(a.t2c + a.t3c, tci),
+        t2_pct: pct(a.t2c, a.t2i),
+        t3_pct: pct(a.t3c, a.t3i),
+        tl_pct: pct(a.tlc, a.tli),
+        // Impacte i +/- són el mateix número a Micki: punts a favor menys en
+        // contra amb ella a pista.
+        pm: a.on_pts - a.on_pts_c,
+        usage: pct((tci + 0.44 * a.tli), (a.on_tci + 0.44 * a.on_tli)),
+        off_rtg: pct(a.on_pts, a.on_poss),
+        def_rtg: pct(a.on_pts_c, a.on_poss_r),
+        net_rtg: netOn,
+        onoff: fiable ? netOn - netOff : null,
+        ts_on: ts_pct(a.on_pts, a.on_tci, a.on_tli),
+        ts_off: ts_pct(a.off_pts, a.off_tci, a.off_tli),
+      });
+    });
+  }
+
+  function agregaParelles(parellaPartit, nomsCurts){
+    const per = {};
+    (parellaPartit || []).forEach(f => {
+      const k = f.equip_id + '|' + f.jugadora_a + '|' + f.jugadora_b;
+      if (!per[k]) per[k] = {
+        equip: f.equip_id, a: f.jugadora_a, b: f.jugadora_b,
+        pj: 0, min: 0, pf: 0, pc: 0,
+      };
+      const x = per[k];
+      x.pj++; x.min += n(f.min); x.pf += n(f.pf); x.pc += n(f.pc);
+    });
+    return Object.values(per).map(x => Object.assign(x, {
+      nom: x.a + ' + ' + x.b,
+      equip_curt: nomsCurts[x.equip] || x.equip,
+      pm: x.pf - x.pc,
+      pm_min: x.min > 0 ? (x.pf - x.pc) / x.min : 0,
+    }));
+  }
+
+  /* Quintets. Les columnes j1..j5 arriben ja ordenades alfabeticament des de
+     Micki, o sigui que el mateix quintet dona sempre la mateixa clau i la
+     temporada se suma sense duplicats. Si algun dia arribessin desordenades,
+     aqui es tornarien a ordenar i no passaria res. */
+  const CLAUS5 = ['j1', 'j2', 'j3', 'j4', 'j5'];
+
+  function agregaQuintets(quintetPartit, equipId, etiq){
+    const per = {};
+    (quintetPartit || []).forEach(f => {
+      if (equipId && f.equip_id !== equipId) return;
+      const cinc = CLAUS5.map(c => f[c]).filter(x => x !== '' && x !== null && x !== undefined);
+      if (cinc.length !== 5) return;
+      cinc.sort();
+      const k = cinc.join('|');
+      if (!per[k]) per[k] = { cinc: cinc, clau: k, pj: 0, min: 0, pf: 0, pc: 0 };
+      const x = per[k];
+      x.pj++; x.min += n(f.min); x.pf += n(f.pf); x.pc += n(f.pc);
+    });
+    return Object.values(per).map(x => Object.assign(x, {
+      nom: x.cinc.map(j => (etiq && etiq[j]) || nomCurtJug(j)).join(' · '),
+      pm: x.pf - x.pc,
+      pm_min: x.min > 0 ? (x.pf - x.pc) / x.min : 0,
+    }));
+  }
+
+  // ── Taula ───────────────────────────────────────────────────────────────
+  const f1 = (v) => v === null || v === undefined || isNaN(v) ? '·' : v.toFixed(1);
+  const f0 = (v) => v === null || v === undefined || isNaN(v) ? '·' : Math.round(v);
+  const fSig = (v) => v === null || v === undefined || isNaN(v) ? '·' :
+                      (v > 0 ? '+' : '') + v.toFixed(1);
+  const classeSigne = (v) => v === null || isNaN(v) ? 'fluix' : (v > 0 ? 'pos' : (v < 0 ? 'neg' : ''));
+
+  let ordre = { clau: null, desc: true };
+
+  function pintaTaula(contenidor, cols, files, defecte){
+    if (!files.length){
+      contenidor.innerHTML = '<div class="estat">Cap fila amb aquests filtres.</div>';
+      return;
+    }
+    if (ordre.clau === null || !cols.some(c => c.clau === ordre.clau)){
+      ordre = { clau: defecte || cols[0].clau, desc: true };
+    }
+    const ordenades = files.slice().sort((x, y) => {
+      const a = x[ordre.clau], b = y[ordre.clau];
+      const buitA = a === null || a === undefined || (typeof a === 'number' && isNaN(a));
+      const buitB = b === null || b === undefined || (typeof b === 'number' && isNaN(b));
+      if (buitA && buitB) return 0;
+      if (buitA) return 1;
+      if (buitB) return -1;
+      if (typeof a === 'string' || typeof b === 'string')
+        return ordre.desc ? String(b).localeCompare(String(a)) : String(a).localeCompare(String(b));
+      return ordre.desc ? b - a : a - b;
+    });
+
+    let h = '<div class="taula-caixa"><table><thead><tr>';
+    cols.forEach(c => {
+      const act = c.clau === ordre.clau;
+      h += '<th data-clau="' + c.clau + '" class="' + (act ? 'ordenat' : '') + '"' +
+           (c.ajuda ? ' title="' + escapa(c.ajuda) + '"' : '') + '>' + escapa(c.tit) +
+           (act ? '<span class="fletxa">' + (ordre.desc ? '▼' : '▲') + '</span>' : '') + '</th>';
+    });
+    h += '</tr></thead><tbody>';
+    ordenades.forEach(f => {
+      h += '<tr>';
+      cols.forEach(c => {
+        const v = c.val(f);
+        h += '<td class="' + (c.classe ? c.classe(f) : '') + '">' + v + '</td>';
+      });
+      h += '</tr>';
+    });
+    h += '</tbody></table></div>';
+    contenidor.innerHTML = h;
+
+    contenidor.querySelectorAll('th').forEach(th => {
+      th.addEventListener('click', () => {
+        const k = th.dataset.clau;
+        ordre = (ordre.clau === k) ? { clau: k, desc: !ordre.desc } : { clau: k, desc: true };
+        pintaTaula(contenidor, cols, files, defecte);
+      });
+    });
+  }
+
+  // ── Vistes ──────────────────────────────────────────────────────────────
+  const COLS_EQUIP = [
+    { tit: 'Equip', clau: 'nom', val: f => escapa(f.nom) },
+    { tit: 'PJ', clau: 'pj', val: f => f.pj },
+    { tit: 'V', clau: 'v', val: f => f.v },
+    { tit: 'D', clau: 'd', val: f => f.d },
+    { tit: 'Pts', clau: 'punts_clas', val: f => f.punts_clas, ajuda: 'Punts de classificació' },
+    { tit: 'PF', clau: 'pts', val: f => f.pts, ajuda: 'Punts a favor' },
+    { tit: 'PC', clau: 'pts_rival', val: f => f.pts_rival, ajuda: 'Punts en contra' },
+    { tit: 'Dif', clau: 'dif', val: f => fSig(f.dif), classe: f => classeSigne(f.dif) },
+    { tit: 'Off', clau: 'off', val: f => f1(f.off), ajuda: 'Punts per 100 possessions' },
+    { tit: 'Def', clau: 'def', val: f => f1(f.def), ajuda: 'Punts rebuts per 100 possessions' },
+    { tit: 'Net', clau: 'net', val: f => fSig(f.net), classe: f => classeSigne(f.net) },
+    { tit: 'Ritme', clau: 'ritme', val: f => f1(f.ritme), ajuda: 'Possessions per partit' },
+    { tit: 'TS%', clau: 'ts', val: f => f1(f.ts), ajuda: 'True Shooting' },
+    { tit: 'eFG%', clau: 'efg', val: f => f1(f.efg) },
+    { tit: 'TC%', clau: 'tc_pct', val: f => f1(f.tc_pct), ajuda: 'Tirs de camp' },
+    { tit: 'T2%', clau: 't2_pct', val: f => f1(f.t2_pct) },
+    { tit: 'T3%', clau: 't3_pct', val: f => f1(f.t3_pct) },
+    { tit: 'T1%', clau: 'tl_pct', val: f => f1(f.tl_pct) },
+    { tit: 'Poss', clau: 'poss', val: f => f0(f.poss) },
+  ];
+
+  const COLS_JUG = [
+    { tit: 'Jugadora', clau: 'nom', val: f => escapa(f.nom) },
+    { tit: 'Equip', clau: 'equip_curt', val: f => '<span class="fluix">' + escapa(f.equip_curt) + '</span>' },
+    { tit: 'PJ', clau: 'pj', val: f => f.pj },
+    { tit: 'Min/P', clau: 'min_p', val: f => f1(f.min_p) },
+    { tit: 'Pts/P', clau: 'pts_p', val: f => f1(f.pts_p) },
+    { tit: 'Pts/40', clau: 'pts40', val: f => f1(f.pts40) },
+    { tit: '+/-', clau: 'pm', val: f => fSig(f.pm), classe: f => classeSigne(f.pm),
+      ajuda: 'Punts a favor menys en contra amb ella a pista. És el mateix que l’Impacte.' },
+    { tit: 'TS%', clau: 'ts', val: f => f1(f.ts) },
+    { tit: 'eFG%', clau: 'efg', val: f => f1(f.efg) },
+    { tit: 'TC%', clau: 'tc_pct', val: f => f1(f.tc_pct) },
+    { tit: 'T3%', clau: 't3_pct', val: f => f1(f.t3_pct),
+      ajuda: 'Tirs de 3 convertits sobre intentats' },
+    { tit: 'T1%', clau: 'tl_pct', val: f => f1(f.tl_pct),
+      ajuda: 'Tirs lliures convertits sobre intentats' },
+    { tit: 'Usage', clau: 'usage', val: f => f1(f.usage),
+      ajuda: 'Percentatge de tirs de l’equip que assumeix mentre és a pista' },
+    { tit: 'Off', clau: 'off_rtg', val: f => f1(f.off_rtg) },
+    { tit: 'Def', clau: 'def_rtg', val: f => f1(f.def_rtg) },
+    { tit: 'Net', clau: 'net_rtg', val: f => fSig(f.net_rtg), classe: f => classeSigne(f.net_rtg) },
+    { tit: 'On/Off', clau: 'onoff', val: f => fSig(f.onoff), classe: f => classeSigne(f.onoff),
+      ajuda: 'Net amb ella menys Net sense ella. Buit si no hi ha prou possessions.' },
+    { tit: 'TS% ON', clau: 'ts_on', val: f => f1(f.ts_on), ajuda: 'TS% de l’equip amb ella a pista' },
+    { tit: 'TS% OFF', clau: 'ts_off', val: f => f1(f.ts_off), ajuda: 'TS% de l’equip sense ella' },
+    { tit: 'Faltes', clau: 'faltes', val: f => f.faltes },
+    { tit: 'Min', clau: 'min', val: f => f0(f.min) },
+  ];
+
+  const COLS_PAR = [
+    { tit: 'Parella', clau: 'nom',
+      val: f => escapa(f.a) + '<span class="jug2">' + escapa(f.b) + '</span>' },
+    { tit: 'Equip', clau: 'equip_curt', val: f => '<span class="fluix">' + escapa(f.equip_curt) + '</span>' },
+    { tit: 'Part.', clau: 'pj', val: f => f.pj },
+    { tit: 'Min', clau: 'min', val: f => f1(f.min) },
+    { tit: 'PF', clau: 'pf', val: f => f.pf },
+    { tit: 'PC', clau: 'pc', val: f => f.pc },
+    { tit: '+/-', clau: 'pm', val: f => fSig(f.pm), classe: f => classeSigne(f.pm) },
+    { tit: '+/- min', clau: 'pm_min', val: f => fSig(f.pm_min), classe: f => classeSigne(f.pm_min) },
+  ];
+
+  /* Ordre: primer el que es mira de seguida (quants minuts i com els ha anat)
+     i els punts a favor i en contra al final, que son el detall. */
+  const COLS_QUI = [
+    { tit: 'Quintet', clau: 'nom', val: f => escapa(f.nom) },
+    { tit: 'Part.', clau: 'pj', val: f => f.pj, ajuda: 'Partits en què han coincidit' },
+    { tit: 'Min', clau: 'min', val: f => f1(f.min) },
+    { tit: '+/-', clau: 'pm', val: f => fSig(f.pm), classe: f => classeSigne(f.pm) },
+    { tit: '+/- min', clau: 'pm_min', val: f => fSig(f.pm_min), classe: f => classeSigne(f.pm_min) },
+    { tit: 'PF', clau: 'pf', val: f => f.pf, ajuda: 'Punts fets mentre hi eren' },
+    { tit: 'PC', clau: 'pc', val: f => f.pc, ajuda: 'Punts rebuts mentre hi eren' },
+  ];
+
+  /* Les possessions s'estimen com a tirs de camp + 0,44 x tirs lliures. La
+     formula de debo tambe restaria els rebots ofensius i sumaria les perdues,
+     pero el play-by-play de la FCBQ NO els publica: nomes dona cistelles,
+     intents fallats, canvis, temps morts i inici i final de periode.
+
+     Consequencia: quan dos equips tiren un nombre molt diferent de vegades
+     -perque un perd moltes pilotes o l'altre agafa molts rebots ofensius- les
+     possessions estimades se separen encara que les reals fossin iguals, i
+     llavors l'Off, el Def, el Net i el Ritme d'aquell partit no son fiables.
+     Comprovat el 30/09/2026: als partits on passa no hi falta cap jugada, els
+     quatre periodes hi son sencers. Es una limitacio de la font, no un error
+     de dades ni de calcul. */
+  const LLINDAR_POSS = 12;
+
+  function avisPossessions(eqP){
+    const per = {};
+    eqP.forEach(f => { (per[f.match_id] = per[f.match_id] || []).push(f); });
+    const dolents = [];
+    Object.values(per).forEach(fs => {
+      if (fs.length !== 2) return;
+      const dif = Math.abs(n(fs[0].poss) - n(fs[1].poss));
+      if (dif >= LLINDAR_POSS) dolents.push({ fs: fs, dif: dif });
+    });
+    if (!dolents.length) return '';
+    const llista = dolents
+      .sort((a, b) => b.dif - a.dif)
+      .map(d => escapa(d.fs[0].equip) + ' – ' + escapa(d.fs[1].equip))
+      .join('; ');
+    return `<br><br><b style="color:var(--mal)">Compte amb els ratings:</b> en ` +
+      dolents.length + ` partit` + (dolents.length > 1 ? 's' : '') +
+      ` els dos equips van tirar un nombre molt diferent de vegades. Les ` +
+      `possessions s'estimen a partir dels tirs, perquè la FCBQ no publica ni ` +
+      `pèrdues ni rebots ofensius, i quan això passa l'estimació es desvia. Els ` +
+      `punts, els tirs, els percentatges i la classificació hi són bé; <b>Off, ` +
+      `Def, Net i Ritme d'aquests partits no s'han de mirar</b>: ` + llista + '.';
+  }
+
+  /* Percentils. Nomes hi posem metriques que NO depenen de les possessions:
+     Off, Def, Net i Ritme en depenen i ja sabem que amb dades FCBQ son
+     aproximades, o sigui que no tenen lloc en una comparativa d'aquest tipus. */
+  const METRIQUES_PC = [
+    { tit: 'TS%',            clau: 'ts',     alt: true,  dec: 1, ajuda: 'True Shooting' },
+    { tit: 'eFG%',           clau: 'efg',    alt: true,  dec: 1 },
+    { tit: 'TC%',            clau: 'tc_pct', alt: true,  dec: 1, ajuda: 'Tirs de camp' },
+    { tit: 'T2%',            clau: 't2_pct', alt: true,  dec: 1 },
+    { tit: 'T3%',            clau: 't3_pct', alt: true,  dec: 1 },
+    { tit: 'T1%',            clau: 'tl_pct', alt: true,  dec: 1, ajuda: 'Tirs lliures' },
+    { tit: 'Punts a favor',  clau: 'pts_p',  alt: true,  dec: 1, ajuda: 'Per partit' },
+    { tit: 'Punts en contra',clau: 'pc_p',   alt: false, dec: 1, ajuda: 'Per partit. Menys és millor' },
+  ];
+
+  /* Contribucio per companya. Per cada parella, el +/- per minut que fa l'equip
+     amb les dues a pista (la barra); i per comparar, la mitjana propia de la
+     companya quan juga ella (el diamant). Si la barra queda a la dreta del
+     diamant, l'equip va millor amb aquella companya que el que ella acostuma.
+
+     Tot surt de min_ind i pm_ind, que Micki desa amb el MATEIX motor que calcula
+     les parelles; si es calcules des d'eq_pts_on difereix en algunes jugadores. */
+  function mitjanesIndividuals(jugP){
+    const per = {};
+    jugP.forEach(f => {
+      const k = f.equip_id + '|' + f.jugadora;
+      if (!per[k]) per[k] = { min: 0, pm: 0, te: false };
+      const mi = f.min_ind, pi = f.pm_ind;
+      if (mi !== undefined && String(mi).trim() !== ''){
+        per[k].min += n(mi); per[k].pm += n(pi); per[k].te = true;
+      }
+    });
+    const out = {};
+    Object.keys(per).forEach(k => {
+      const a = per[k];
+      out[k] = (a.te && a.min > 0) ? a.pm / a.min : null;
+    });
+    return out;
+  }
+
+  /* "C. GENER VILA" -> "GENER", "BERTA NARDI COMAS" -> "BERTA". Agafar sempre
+     la primera paraula donava "C." als noms que comencen amb inicial. */
+  function nomCurtJug(nom){
+    const t = String(nom).trim().split(/\s+/);
+    if (!t.length) return nom;
+    return (t[0].endsWith('.') && t[1]) ? t[1] : t[0];
+  }
+
+  /* Hi ha dues Janes i dues Laies: el nom de pila sol no les distingeix, i a
+     la tria de quintets sortien dues caselles iguals. A les que es repeteixen
+     se'ls hi afegeix la inicial del cognom, i si la inicial tambe coincideix,
+     el cognom sencer. A les que no es repeteixen no se'ls toca res. */
+  function etiquetesJugadores(noms){
+    const cognomDe = (nom) => {
+      const t = String(nom).trim().split(/\s+/);
+      const i = t.indexOf(nomCurtJug(nom));
+      return t[i + 1] || '';
+    };
+    const per = {};
+    (noms || []).forEach(nom => {
+      const c = nomCurtJug(nom);
+      (per[c] = per[c] || []).push(nom);
+    });
+    const out = {};
+    Object.keys(per).forEach(c => {
+      const grup = per[c];
+      if (grup.length === 1){ out[grup[0]] = c; return; }
+      const cognoms = grup.map(cognomDe);
+      const inicials = cognoms.map(x => x.slice(0, 1));
+      const prouInicial = new Set(inicials).size === inicials.length;
+      grup.forEach((nom, k) => {
+        const afegit = prouInicial ? (inicials[k] ? inicials[k] + '.' : '') : cognoms[k];
+        out[nom] = (c + ' ' + afegit).trim();
+      });
+    });
+    return out;
+  }
+
+  function contribucio(parP, jugP, equip, jugadora, minMin){
+    const propies = mitjanesIndividuals(jugP);
+    const junts = {};
+    parP.forEach(f => {
+      if (f.equip_id !== equip) return;
+      let altra = null;
+      if (f.jugadora_a === jugadora) altra = f.jugadora_b;
+      else if (f.jugadora_b === jugadora) altra = f.jugadora_a;
+      if (!altra) return;
+      if (!junts[altra]) junts[altra] = { min: 0, pf: 0, pc: 0 };
+      junts[altra].min += n(f.min);
+      junts[altra].pf += n(f.pf);
+      junts[altra].pc += n(f.pc);
+    });
+    return Object.keys(junts).map(c => {
+      const a = junts[c];
+      return {
+        companya: c, minuts: a.min, pf: a.pf, pc: a.pc,
+        pm_min: a.min > 0 ? (a.pf - a.pc) / a.min : 0,
+        propi: propies[equip + '|' + c],
+      };
+    }).filter(x => x.minuts >= minMin).sort((a, b) => b.pm_min - a.pm_min);
+  }
+
+  /* La mediana es l'equip del mig, i es exactament el que marca la ratlla de
+     la barra al 50. Per aixo es aquesta i no la mitjana aritmetica: si hi
+     posessim la mitjana, el numero i la barra es podrien contradir. */
+  function mediana(valors){
+    const v = valors.filter(x => x !== null && !isNaN(x)).sort((a, b) => a - b);
+    if (!v.length) return null;
+    const m = Math.floor(v.length / 2);
+    return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+  }
+
+  /* Percentil amb empats repartits: (els que queden per sota + mig dels
+     iguals) / total. Si a la metrica menys es millor, es compta al reves. */
+  function percentil(valors, valor, millorAlt){
+    const v = valors.filter(x => x !== null && !isNaN(x));
+    if (!v.length || valor === null || isNaN(valor)) return null;
+    let sota = 0, iguals = 0;
+    v.forEach(x => {
+      if (x === valor) iguals++;
+      else if (millorAlt ? x < valor : x > valor) sota++;
+    });
+    return (sota + iguals / 2) / v.length * 100;
+  }
+
+  /* Metriques del grafic d'equips. 'alt' diu si mes es millor, per ordenar;
+     'zero' diu si l'escala ha d'arrencar del zero o del minim de la lliga
+     (les diferencies i els nets poden ser negatius i volen el zero al mig). */
+  const METRIQUES_EQ = [
+    { tit: 'Punts a favor',   clau: 'pts',        alt: true,  dec: 0 },
+    { tit: 'Punts en contra', clau: 'pts_rival',  alt: false, dec: 0 },
+    { tit: 'Diferència',      clau: 'dif',        alt: true,  dec: 0, signe: true },
+    { tit: 'TS%',             clau: 'ts',         alt: true,  dec: 1 },
+    { tit: 'eFG%',            clau: 'efg',        alt: true,  dec: 1 },
+    { tit: 'TC%',             clau: 'tc_pct',     alt: true,  dec: 1 },
+    { tit: 'T2%',             clau: 't2_pct',     alt: true,  dec: 1 },
+    { tit: 'T3%',             clau: 't3_pct',     alt: true,  dec: 1 },
+    { tit: 'T1%',             clau: 'tl_pct',     alt: true,  dec: 1 },
+    { tit: 'Off rating',      clau: 'off',        alt: true,  dec: 1, aprox: true },
+    { tit: 'Def rating',      clau: 'def',        alt: false, dec: 1, aprox: true },
+    { tit: 'Net rating',      clau: 'net',        alt: true,  dec: 1, signe: true, aprox: true },
+    { tit: 'Ritme',           clau: 'ritme',      alt: true,  dec: 1, aprox: true },
+  ];
+
+  let MODE_EQ = 'taula', MET_EQ = 'ts';
+
+  const botonsMode = () =>
+    '<div class="bg-sel">' +
+    ['taula', 'grafic'].map(v => '<div class="tab ' + (MODE_EQ === v ? 'actiu' : '') +
+      '" data-m="' + v + '" style="padding:7px 14px; flex:0 0 auto">' +
+      (v === 'taula' ? 'Taula' : 'Gràfic') + '</div>').join('') + '</div>';
+
+  function lligaBotonsMode(redibuixa){
+    document.querySelectorAll('.bg-sel [data-m]').forEach(b =>
+      b.addEventListener('click', () => { MODE_EQ = b.dataset.m; redibuixa(); }));
+  }
+
+  let DADES = null, VISTA = VISTES[0][0];
+  // Es guarda fora de pinta() per no perdre la tria en canviar de pestanya.
+  let QUINTET_TRIAT = [];
+
+  function pinta(){
+    const box = document.getElementById('contingut');
+    /* Els noms de la FCBQ porten el patrocinador al davant i canvien entre
+       jornades: el mateix equip pot sortir com a "ODONTOMED JET TERRASSA" i
+       "SERMATEC JET TERRASSA". L'identificador, en canvi, no canvia mai, i per
+       aixo s'agrupa per identificador. Per posar-hi etiqueta s'agafa el nom de
+       la jornada mes recent, que es com se'n diu ara. */
+    const curtPerNom = {};
+    aObjectes(DADES.taules.equips).forEach(e => {
+      if (e.nom_fcbq) curtPerNom[e.nom_fcbq] = e.nom_curt || e.nom_fcbq;
+    });
+    const ultimNom = {};
+    aObjectes(DADES.taules.equip_partit).forEach(f => {
+      const j = n(f.jornada);
+      if (!ultimNom[f.equip_id] || j >= ultimNom[f.equip_id].j){
+        ultimNom[f.equip_id] = { j: j, nom: f.equip };
+      }
+    });
+    const nomsCurts = {};
+    Object.keys(ultimNom).forEach(id => {
+      const nom = ultimNom[id].nom;
+      nomsCurts[id] = curtPerNom[nom] || nom;
+    });
+    const nomFcbq = {};
+    Object.keys(ultimNom).forEach(id => { nomFcbq[id] = ultimNom[id].nom; });
+
+    const eqP = aObjectes(DADES.taules.equip_partit);
+    const jugP = aObjectes(DADES.taules.jugadora_partit);
+    const parP = aObjectes(DADES.taules.parella_partit);
+
+    if (!eqP.length){
+      box.innerHTML = '<div class="estat">La base de la COPA encara no té cap partit.<br>' +
+        'Envia\'n algun des de Micki i aquí apareixeran.</div>';
+      return;
+    }
+
+    let h = '<div class="tabs">' +
+      VISTES
+        .map(v => '<div class="tab ' + (VISTA === v[0] ? 'actiu' : '') + '" data-v="' + v[0] + '">' +
+                  v[1] + '</div>')
+        .join('') + '</div><div id="filtres" class="filtres"></div><div id="taula"></div>' +
+      '<div class="nota" id="nota"></div>';
+    box.innerHTML = h;
+
+    box.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+      VISTA = t.dataset.v; ordre = { clau: null, desc: true }; pinta();
+    }));
+
+    const fBox = document.getElementById('filtres');
+    const tBox = document.getElementById('taula');
+    tBox.className = 'vista-' + VISTA;
+    const nota = document.getElementById('nota');
+    const equipsLlista = [...new Set(eqP.map(f => f.equip_id))]
+      .sort((a, b) => (nomsCurts[a] || a).localeCompare(nomsCurts[b] || b));
+    const opcionsEquip = '<option value="">Tots els equips</option>' +
+      equipsLlista.map(e => '<option value="' + escapa(e) + '">' + escapa(nomsCurts[e] || e) + '</option>').join('');
+
+    if (VISTA === 'equips'){
+      const equips = agregaEquips(eqP, nomsCurts);
+      const elMeu = (equips.find(e => /MANRESA/i.test(nomFcbq[e.equip] || e.equip)) || {}).equip;
+
+      const dibuixaEquips = () => {
+        if (MODE_EQ === 'taula'){
+          fBox.innerHTML = botonsMode();
+          lligaBotonsMode(dibuixaEquips);
+          pintaTaula(tBox, COLS_EQUIP, equips, 'punts_clas');
+          nota.innerHTML = 'Classificació amb ' + PUNTS_VICTORIA + ' punts per victòria i ' +
+            PUNTS_DERROTA + ' per derrota. Toca una capçalera per ordenar.' + avisPossessions(eqP);
+          return;
+        }
+
+        fBox.innerHTML = botonsMode() +
+          '<select id="f_met">' + METRIQUES_EQ.map(m =>
+            '<option value="' + m.clau + '"' + (m.clau === MET_EQ ? ' selected' : '') + '>' +
+            escapa(m.tit) + '</option>').join('') + '</select>';
+        lligaBotonsMode(dibuixaEquips);
+        document.getElementById('f_met').addEventListener('change', e => {
+          MET_EQ = e.target.value; dibuixaEquips();
+        });
+
+        const m = METRIQUES_EQ.find(x => x.clau === MET_EQ) || METRIQUES_EQ[0];
+        const files = equips.filter(e => e[m.clau] !== null && !isNaN(e[m.clau]))
+                            .sort((a, b) => m.alt ? b[m.clau] - a[m.clau] : a[m.clau] - b[m.clau]);
+        if (!files.length){ tBox.innerHTML = '<div class="estat">Sense dades.</div>'; return; }
+
+        const vals = files.map(e => e[m.clau]);
+        const med = mediana(vals);
+        // Amb valors negatius l'escala ha d'incloure el zero; si no, arrenca una
+        // mica per sota del minim perque les barres no surtin totes plenes.
+        const mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals);
+        const baix = m.signe ? Math.min(mn, 0) : (mn > 0 ? mn - (mx - mn) * 0.25 - 0.01 : mn);
+        const dalt = m.signe ? Math.max(mx, 0) : mx;
+        const x = (v) => (dalt === baix) ? 50 : (v - baix) / (dalt - baix) * 100;
+
+        let h = '<div class="bg-llista">';
+        files.forEach(e => {
+          const v = e[m.clau];
+          const jo = e.equip === elMeu;
+          const x0 = Math.min(x(0), x(v)), x1 = Math.max(x(0), x(v));
+          const esq = m.signe ? x0 : 0, amp = m.signe ? (x1 - x0) : x(v);
+          h += '<div class="bg-fila' + (jo ? ' jo' : '') + '">' +
+            '<span class="bg-nom">' + escapa(e.nom) + '</span>' +
+            '<span class="bg-pista"><span class="bg-barra" data-l="' + esq +
+              '" data-w="' + amp + '"></span>' +
+            (med === null ? '' : '<span class="bg-mediana" style="left:' + x(med) + '%"></span>') +
+            '</span>' +
+            '<span class="bg-val">' + (m.signe && v > 0 ? '+' : '') + v.toFixed(m.dec) + '</span>' +
+            '</div>';
+        });
+        h += '</div>';
+        tBox.innerHTML = h;
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          tBox.querySelectorAll('.bg-barra').forEach(el => {
+            el.style.left = el.dataset.l + '%'; el.style.width = el.dataset.w + '%';
+          });
+        }));
+
+        nota.innerHTML = 'Ordenat de millor a pitjor' +
+          (m.alt ? '' : ' (en aquesta, menys és millor)') +
+          '. La ratlla vertical és la mediana de la lliga.' +
+          // Nomes l'avis curt: el llistat de partits amb possessions descompassades
+          // ocupava mitja pantalla sota el grafic. A la taula si que hi surt, que
+          // alla es veuen totes les metriques alhora.
+          (m.aprox ? ' <b style="color:var(--mal)">Aquesta mètrica depèn de les possessions ' +
+             'i amb dades de la FCBQ és aproximada.</b>' : '');
+      };
+      dibuixaEquips();
+    }
+
+    if (VISTA === 'jugadores'){
+      fBox.innerHTML =
+        '<select id="f_equip">' + opcionsEquip + '</select>' +
+        '<label>Mín. partits <input type="number" id="f_pj" value="1" min="1" step="1"></label>' +
+        '<input type="search" id="f_nom" placeholder="Cerca una jugadora">';
+      const refresca = () => {
+        const eq = document.getElementById('f_equip').value;
+        const minPj = parseInt(document.getElementById('f_pj').value || '1', 10);
+        const txt = (document.getElementById('f_nom').value || '').toLowerCase().trim();
+        let files = agregaJugadores(jugP, eqP, nomsCurts);
+        if (eq) files = files.filter(f => f.equip === eq);
+        files = files.filter(f => f.pj >= minPj);
+        if (txt) files = files.filter(f => f.nom.toLowerCase().includes(txt));
+        pintaTaula(tBox, COLS_JUG, files, 'pts_p');
+      };
+      ['f_equip','f_pj','f_nom'].forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener(id === 'f_nom' ? 'input' : 'change', refresca);
+      });
+      refresca();
+      nota.innerHTML = 'L’On/Off queda buit quan no hi ha ' + MIN_POSS_ONOFF +
+        ' possessions amb la jugadora i sense ella: per sota, el número no diu res.';
+    }
+
+    if (VISTA === 'percentils'){
+      const equips = agregaEquips(eqP, nomsCurts);
+      const meu = equips.find(e => /MANRESA/i.test(nomFcbq[e.equip] || e.equip)) || equips[0];
+      fBox.innerHTML = '<select id="f_pc">' + equips
+        .slice().sort((a, b) => a.nom.localeCompare(b.nom))
+        .map(e => '<option value="' + escapa(e.equip) + '"' +
+                  (e.equip === meu.equip ? ' selected' : '') + '>' +
+                  escapa(e.nom) + '</option>').join('') + '</select>';
+
+      const dibuixa = () => {
+        const tria = document.getElementById('f_pc').value;
+        const eq = equips.find(e => e.equip === tria) || meu;
+        let h = '<div class="pc-cap"><div class="pc-equip">' + escapa(eq.nom) + '</div>' +
+          '<div class="pc-sub">Percentil dins de ' + equips.length + ' equips. ' +
+          '<b>lliga</b> és la mediana, l’equip que queda al mig, i és on cau la ratlla ' +
+          'de les barres: per damunt, millor que la meitat de la competició.' +
+          '</div></div>';
+
+        h += '<div class="pc-llista">';
+        METRIQUES_PC.forEach(m => {
+          const valors = equips.map(e => e[m.clau]);
+          const meuV = eq[m.clau];
+          const pc = percentil(valors, meuV, m.alt);
+          const med = mediana(valors);
+          h += '<div class="pc-fila">' +
+            '<div class="pc-dalt"><span class="pc-nom">' + escapa(m.tit) +
+              (m.ajuda ? '<small>' + escapa(m.ajuda) + '</small>' : '') + '</span>' +
+            '<span class="pc-val">' + (meuV === null || isNaN(meuV) ? '·' : meuV.toFixed(m.dec)) +
+              '<i>lliga ' + (med === null ? '·' : med.toFixed(m.dec)) + '</i>' +
+              '<b>' + (pc === null ? '·' : Math.round(pc)) + '</b></span></div>' +
+            '<div class="pc-pista"><div class="pc-plena" data-w="' + (pc === null ? 0 : pc) + '"></div>' +
+            '<div class="pc-mediana"></div></div>' +
+            '</div>';
+        });
+        h += '</div>';
+        tBox.innerHTML = h;
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          tBox.querySelectorAll('.pc-plena').forEach(el => { el.style.width = el.dataset.w + '%'; });
+        }));
+      };
+      document.getElementById('f_pc').addEventListener('change', dibuixa);
+      dibuixa();
+      nota.innerHTML = 'Només hi surten mètriques que no depenen de les possessions: ' +
+        'Off, Def, Net i Ritme en depenen i amb dades de la FCBQ són aproximades.';
+      return;
+    }
+
+    if (VISTA === 'quintets'){
+      /* Nomes el Manresa: a la base hi ha els quintets dels dos equips de cada
+         partit, pero aquesta pantalla es per decidir rotacions propies. */
+      const meu = equipsLlista.find(e => /MANRESA/i.test(nomFcbq[e] || e)) || equipsLlista[0];
+      const plantilla = [...new Set(jugP.filter(f => f.equip_id === meu).map(f => f.jugadora))].sort();
+      const etiq = etiquetesJugadores(plantilla);
+      const et = (j) => etiq[j] || nomCurtJug(j);
+      const totsQ = agregaQuintets(aObjectes(DADES.taules.quintet_partit), meu, etiq);
+
+      if (!totsQ.length){
+        fBox.innerHTML = '';
+        tBox.innerHTML = `<div class="estat">Encara no hi ha dades de quintets.<br>` +
+          `Arriben amb els partits enviats amb l'esquema v4 o posterior: ` +
+          `torna a enviar-los des de Micki.</div>`;
+        nota.innerHTML = '';
+        return;
+      }
+
+      const sig0 = (v) => (v > 0 ? '+' : '') + Math.round(v);
+
+      const fitxa = (q) => '<div class="qui-fitxa">' +
+        '<div class="qui-cinc">' +
+          q.cinc.map(j => '<b>' + escapa(et(j)) + '</b>').join(' · ') + '</div>' +
+        '<div class="qui-gran">' +
+          '<div class="qui-pm ' + classeSigne(q.pm) + '">' + sig0(q.pm) + '</div>' +
+          '<div class="qui-detall">' +
+            '<b>' + f1(q.min) + '</b> minuts junts en <b>' + q.pj + '</b> partit' +
+              (q.pj === 1 ? '' : 's') + '<br>' +
+            '<b>' + q.pf + '</b> punts fets i <b>' + q.pc + '</b> rebuts<br>' +
+            '<b>' + fSig(q.pm_min) + '</b> per minut' +
+          '</div>' +
+        '</div></div>';
+
+      const refrescaQ = () => {
+        const ple = QUINTET_TRIAT.length >= 5;
+        fBox.innerHTML = '<div class="qui-tria">' +
+          plantilla.map(j => {
+            const tria = QUINTET_TRIAT.indexOf(j) >= 0;
+            return '<button class="qui-chip' + (tria ? ' tria' : (ple ? ' ple' : '')) +
+              '" data-j="' + escapa(j) + '">' + escapa(et(j)) + '</button>';
+          }).join('') + '</div>' +
+          '<div class="qui-compte"><span>' + QUINTET_TRIAT.length + ' de 5 triades</span>' +
+          (QUINTET_TRIAT.length
+            ? '<button class="qui-neteja" id="qui_neteja">Esborra</button>' : '') +
+          '</div>';
+
+        fBox.querySelectorAll('.qui-chip').forEach(b => b.addEventListener('click', () => {
+          const j = b.dataset.j;
+          const i = QUINTET_TRIAT.indexOf(j);
+          if (i >= 0) QUINTET_TRIAT.splice(i, 1);
+          else if (QUINTET_TRIAT.length < 5) QUINTET_TRIAT.push(j);
+          else return;                     // ja n'hi ha cinc: cal treure'n una
+          refrescaQ();
+        }));
+        const net = document.getElementById('qui_neteja');
+        if (net) net.addEventListener('click', () => { QUINTET_TRIAT = []; refrescaQ(); });
+
+        if (QUINTET_TRIAT.length === 5){
+          const q = totsQ.find(x => x.clau === QUINTET_TRIAT.slice().sort().join('|'));
+          if (!q){
+            tBox.innerHTML = '<div class="estat">Aquestes cinc <b>no han coincidit mai</b> a pista ' +
+              `als partits que hi ha a la base.<br>Treu-ne una i veuràs amb quines sí.</div>`;
+            nota.innerHTML = '';
+            return;
+          }
+          tBox.innerHTML = fitxa(q);
+          nota.innerHTML = `El +/- són els punts fets menys els rebuts mentre les cinc ` +
+            `eren a pista alhora. Mira-hi els minuts: amb pocs, un número gros no vol dir gaire.`;
+          return;
+        }
+
+        let files = totsQ;
+        if (QUINTET_TRIAT.length){
+          files = files.filter(x => QUINTET_TRIAT.every(j => x.cinc.indexOf(j) >= 0));
+        }
+        pintaTaula(tBox, COLS_QUI, files, 'min');
+        nota.innerHTML = QUINTET_TRIAT.length
+          ? 'Els ' + files.length + ' quintets que inclouen les ' + QUINTET_TRIAT.length +
+            ' triades, de més a menys minuts. Marca fins a cinc per veure la fitxa del quintet.'
+          : `Tots els quintets que ha fet servir l'equip, de més a menys minuts. Marca ` +
+            `jugadores per filtrar. Aquests números són exactes: només surten dels canvis ` +
+            `i dels punts, sense estimar res.`;
+      };
+      refrescaQ();
+      return;
+    }
+
+    if (VISTA === 'parelles'){
+      if (!parP.length){
+        fBox.innerHTML = '';
+        tBox.innerHTML = '<div class="estat">Encara no hi ha dades de parelles.<br>' +
+          'Arriben amb els partits enviats amb l’esquema v2 o posterior.</div>';
+        nota.innerHTML = '';
+        return;
+      }
+      const equipDefecte = equipsLlista.find(e => /MANRESA/i.test(nomFcbq[e] || e)) || '';
+      const jugadoresDe = (eq) => [...new Set(
+        jugP.filter(f => !eq || f.equip_id === eq).map(f => f.jugadora))].sort();
+
+      const pintaFiltres = (eqSel, jugSel, minSel) => {
+        fBox.innerHTML =
+          '<select id="f_equip2">' + opcionsEquip.replace(
+            'value="' + escapa(eqSel) + '"', 'value="' + escapa(eqSel) + '" selected') + '</select>' +
+          '<select id="f_jug2"><option value="">Totes les parelles</option>' +
+          jugadoresDe(eqSel).map(j => '<option value="' + escapa(j) + '"' +
+            (j === jugSel ? ' selected' : '') + '>' + escapa(j) + '</option>').join('') + '</select>' +
+          '<label>Mín. minuts <input type="number" id="f_min" value="' + minSel +
+          '" min="0" step="5"></label>';
+      };
+
+      // 20 minuts era massa amb pocs partits: cap parella hi arribava i la
+      // vista sortia buida. Amb 5 es veu alguna cosa des del primer partit.
+      let eqSel = equipDefecte, jugSel = '', minSel = 5;
+
+      const refresca2 = () => {
+        pintaFiltres(eqSel, jugSel, minSel);
+        document.getElementById('f_equip2').addEventListener('change', e => {
+          eqSel = e.target.value; jugSel = ''; refresca2();
+        });
+        document.getElementById('f_jug2').addEventListener('change', e => {
+          jugSel = e.target.value; refresca2();
+        });
+        document.getElementById('f_min').addEventListener('change', e => {
+          minSel = parseFloat(e.target.value || '0'); refresca2();
+        });
+
+        if (!jugSel){
+          let files = agregaParelles(parP, nomsCurts);
+          if (eqSel) files = files.filter(f => f.equip === eqSel);
+          files = files.filter(f => f.min >= minSel);
+          pintaTaula(tBox, COLS_PAR, files, 'min');
+          nota.innerHTML = 'Minuts que han compartit pista i què va passar mentre hi eren totes dues. ' +
+            'Tria una jugadora per veure què aporta a cadascuna de les companyes.';
+          return;
+        }
+
+        const files = contribucio(parP, jugP, eqSel, jugSel, minSel);
+        if (!files.length){
+          tBox.innerHTML = '<div class="estat">' + escapa(jugSel) +
+            ' no arriba a ' + minSel + ' minuts amb cap companya.</div>';
+          nota.innerHTML = '';
+          return;
+        }
+        // Mateix problema que a Quintets: amb dues Janes i dues Laies, "amb JANA"
+        // no diu quina. A les files del grafic hi va el nom sencer i no cal.
+        const etP = etiquetesJugadores(jugadoresDe(eqSel));
+        const nomJug = (j) => etP[j] || nomCurtJug(j);
+
+        const senseDiamant = files.filter(f => f.propi === null || f.propi === undefined).length;
+        const valors = [];
+        files.forEach(f => { valors.push(f.pm_min); if (f.propi != null) valors.push(f.propi); });
+        const lim = Math.max(0.2, Math.max.apply(null, valors.map(Math.abs))) * 1.1;
+        const x = (v) => (v + lim) / (2 * lim) * 100;   // -lim..+lim -> 0..100%
+
+        let h = '<div class="co-llegenda">' +
+          '<span><i class="co-mostra"></i>amb ' + escapa(nomJug(jugSel)) + '</span>' +
+          '<span><i class="co-mostra d"></i>mitjana de la companya</span></div>' +
+          '<div class="pc-llista">';
+        files.forEach(f => {
+          const dreta = f.pm_min >= 0;
+          const x0 = Math.min(x(0), x(f.pm_min)), x1 = Math.max(x(0), x(f.pm_min));
+          h += '<div class="co-fila">' +
+            '<div class="co-dalt"><span class="co-nom">' + escapa(f.companya) +
+              '<small>' + f.minuts.toFixed(1) + ' min junts</small></span>' +
+            '<span class="co-val">' + (f.propi == null ? 'ella ·' :
+              'ella ' + (f.propi > 0 ? '+' : '') + f.propi.toFixed(2)) +
+              '<b class="' + (dreta ? 'pos' : 'neg') + '">' +
+              (f.pm_min > 0 ? '+' : '') + f.pm_min.toFixed(2) + '</b></span></div>' +
+            '<div class="co-pista"><div class="co-eix"></div>' +
+            '<div class="co-barra' + (dreta ? '' : ' neg') + '" style="left:' + x0 +
+              '%; width:' + (x1 - x0) + '%"></div>' +
+            '<div class="co-zero" style="left:' + x(0) + '%"></div>' +
+            (f.propi == null ? '' :
+              '<div class="co-diamant" style="left:' + x(f.propi) + '%"></div>') +
+            '</div></div>';
+        });
+        h += '</div>';
+        tBox.innerHTML = h;
+        nota.innerHTML = 'Barra: punts per minut que fa l’equip amb ' + escapa(nomJug(jugSel)) +
+          ' i aquella companya a pista alhora. Diamant: el que fa la companya de mitjana quan juga. ' +
+          'Barra a la dreta del diamant vol dir que, amb ' + escapa(nomJug(jugSel)) +
+          ', aquella companya rendeix per sobre del seu habitual.' +
+          (senseDiamant ? ' <b style="color:var(--mal)">A ' + senseDiamant +
+            ' company' + (senseDiamant > 1 ? 'es' : 'a') + ' hi falta la mitjana pròpia: ' +
+            'els partits es van enviar amb un esquema anterior i cal reenviar-los.</b>' : '');
+      };
+      refresca2();
+    }
+  }
+
+  async function carrega(){
+    const box = document.getElementById('contingut');
+    if (COPA_URL.indexOf('__PENDENT') === 0){
+      box.innerHTML = '<div class="estat"><b>Encara falta connectar la base de la COPA.</b><br><br>' +
+        'Cal instal·lar <code>apps_script_copa.gs</code> al full de la COPA, desplegar-lo ' +
+        'i enganxar aquí l’URL i el token.</div>';
+      return;
+    }
+    box.innerHTML = '<div class="estat">Carregant…</div>';
+    try{
+      DADES = await llegeix();
+      pinta();
+    } catch(err){
+      box.innerHTML = '<div class="estat">No s’han pogut carregar les dades.<br>' +
+        escapa(String(err && err.message || err)) + '</div>';
+    }
+  }
+
+  carrega();
+</script>
+</body>
+</html>
